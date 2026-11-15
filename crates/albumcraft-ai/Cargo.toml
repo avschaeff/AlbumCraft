@@ -12,6 +12,11 @@ default = ["onnx"]
 # Links ONNX Runtime into the program. Without it everything else still builds and
 # `runtime::available()` answers false.
 onnx = ["dep:ort"]
+# With `onnx`: ONNX Runtime is not linked in but loaded when first needed from its library file
+# (libonnxruntime.so) beside the program or in `../lib/albumcraft` (see `runtime`). The Linux
+# packages are built this way with Microsoft's own build of the library, which runs on older
+# systems (glibc 2.28) than the prebuilt one of the `ort` crate (glibc 2.38).
+onnx-dynamic = ["onnx", "ort?/load-dynamic"]
 
 [dependencies]
 dirs.workspace = true

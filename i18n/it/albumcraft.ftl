@@ -220,6 +220,7 @@ settings-ai-tags = Suggerimenti di tag
 settings-ai-tags-text = tag proposti in base al contenuto della foto.
 settings-ai-intro = Trovare i volti, cercare descrivendo una foto, proporre tag. Tutto viene calcolato su questo computer: nessuna foto, nessun volto e nessun testo di ricerca viene inviato altrove. Le reti di cui queste funzioni hanno bisogno vengono scaricate solo quando lo chiedi, dalle versioni pubblicate di AlbumCraft.
 settings-ai-unavailable = Questa versione di AlbumCraft non può eseguire reti: queste funzioni non sono disponibili.
+settings-ai-library-missing = Il file { $file } fornito con AlbumCraft non è stato trovato accanto al programma, che quindi non può eseguire reti: queste funzioni non sono disponibili. Reinstallare AlbumCraft lo ripristina.
 settings-ai-networks = Reti
 settings-ai-pack-size = { $size }  ·  licenza: { $licence }
 settings-ai-remove = Rimuovi

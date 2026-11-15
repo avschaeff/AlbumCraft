@@ -6,7 +6,7 @@ default-members = [".", "crates/albumcraft-edit", "crates/albumcraft-core", "cra
 resolver = "3"
 
 [workspace.package]
-version = "0.6.0"
+version = "0.6.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/kbarni/AlbumCraft"
@@ -41,6 +41,9 @@ default = ["onnx"]
 # ONNX Runtime linked in, to run the networks of the AI features (see crates/albumcraft-ai).
 # `cargo build --no-default-features` builds the app without it.
 onnx = ["albumcraft-core/onnx"]
+# ONNX Runtime loaded from its library file beside the program instead of linked in: what the
+# Linux packages are built with (packaging/linux/package.sh puts the file there).
+onnx-dynamic = ["onnx", "albumcraft-core/onnx-dynamic"]
 
 [dependencies]
 albumcraft-core.workspace = true
