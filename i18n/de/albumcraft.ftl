@@ -220,6 +220,7 @@ settings-ai-tags = Stichwortvorschläge
 settings-ai-tags-text = Stichwörter, die anhand des Fotoinhalts vorgeschlagen werden.
 settings-ai-intro = Gesichter finden, Fotos durch Beschreiben suchen, Stichwörter vorschlagen. Alles wird auf diesem Computer berechnet: Kein Foto, kein Gesicht und kein Suchtext wird irgendwohin gesendet. Die Netze, die diese Funktionen brauchen, werden nur heruntergeladen, wenn Sie es wünschen, aus den eigenen Veröffentlichungen von AlbumCraft.
 settings-ai-unavailable = Diese Ausgabe von AlbumCraft kann keine Netze ausführen: Diese Funktionen sind darin nicht verfügbar.
+settings-ai-library-missing = Die Datei { $file }, die zu AlbumCraft gehört, wurde neben dem Programm nicht gefunden; es kann daher keine Netze ausführen: Diese Funktionen sind nicht verfügbar. Eine erneute Installation von AlbumCraft stellt sie wieder her.
 settings-ai-networks = Netze
 settings-ai-pack-size = { $size }  ·  Lizenz: { $licence }
 settings-ai-remove = Entfernen

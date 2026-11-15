@@ -3,6 +3,8 @@
 //! ONNX Runtime is linked into the program when the `onnx` feature is on (the default), except
 //! on Windows with the GNU toolchain, for which no prebuilt library exists. Where it is missing,
 //! `available()` answers false and `Network::load` fails with a message; nothing else changes.
+//! With the `onnx-dynamic` feature as well (the Linux packages) it is loaded from its library
+//! file instead, when the first network is loaded: see `library_file`.
 //! The `ort` types stay inside this file.
 
 use std::path::Path;
@@ -81,9 +83,15 @@ impl Network {
     }
 }
 
-/// Networks can be run by this build of the program.
+/// Networks can be run by this copy of the program.
 pub fn available() -> bool {
-    imp::AVAILABLE
+    imp::available()
+}
+
+/// The name of the ONNX Runtime library file when this build loads it from a file that should
+/// be there and is not (a copy of the program without the file that came with it).
+pub fn missing_library() -> Option<String> {
+    imp::missing_library()
 }
 
 #[cfg(all(feature = "onnx", not(all(windows, target_env = "gnu"))))]
@@ -94,7 +102,67 @@ mod imp {
     use std::path::Path;
     use std::sync::{Mutex, OnceLock, PoisonError};
 
-    pub const AVAILABLE: bool = true;
+    pub fn available() -> bool {
+        library::found()
+    }
+
+    pub fn missing_library() -> Option<String> {
+        (!library::found()).then(library::name)
+    }
+
+    /// ONNX Runtime linked into the program.
+    #[cfg(not(feature = "onnx-dynamic"))]
+    mod library {
+        pub fn found() -> bool {
+            true
+        }
+
+        pub fn name() -> String {
+            String::new()
+        }
+
+        pub fn init() -> Result<ort::environment::EnvironmentBuilder, String> {
+            Ok(ort::init())
+        }
+    }
+
+    /// ONNX Runtime loaded from its library file.
+    #[cfg(feature = "onnx-dynamic")]
+    mod library {
+        use std::path::{Path, PathBuf};
+        use std::sync::OnceLock;
+
+        /// `libonnxruntime.so`, `onnxruntime.dll`, `libonnxruntime.dylib`.
+        pub fn name() -> String {
+            format!("{}onnxruntime{}", std::env::consts::DLL_PREFIX, std::env::consts::DLL_SUFFIX)
+        }
+
+        /// The library file of this copy of the program: beside the program (the `.tar.gz`) or
+        /// in `../lib/albumcraft` (the `.deb`, the AppImage, the Flatpak). `ORT_DYLIB_PATH`
+        /// names another one (development builds). Never one found on the system's library
+        /// path: it could be any version.
+        fn file() -> Option<&'static Path> {
+            static FILE: OnceLock<Option<PathBuf>> = OnceLock::new();
+            FILE.get_or_init(|| {
+                if let Some(named) = std::env::var_os("ORT_DYLIB_PATH").filter(|p| !p.is_empty()) {
+                    return Some(PathBuf::from(named)).filter(|p| p.is_file());
+                }
+                let exe = std::env::current_exe().ok()?;
+                let dir = exe.parent()?;
+                [dir.join(name()), dir.join("../lib/albumcraft").join(name())].into_iter().find(|p| p.is_file())
+            })
+            .as_deref()
+        }
+
+        pub fn found() -> bool {
+            file().is_some()
+        }
+
+        pub fn init() -> Result<ort::environment::EnvironmentBuilder, String> {
+            let file = file().ok_or_else(|| format!("{} was not found beside the program", name()))?;
+            ort::init_from(file).map_err(|e| e.to_string())
+        }
+    }
 
     pub struct Network {
         session: Mutex<Session>,
@@ -105,7 +173,7 @@ mod imp {
     /// The one ONNX Runtime environment of the program (it sends no usage data anywhere).
     fn environment() -> Result<&'static ort::environment::Environment, String> {
         static ENV: OnceLock<Result<ort::environment::Environment, String>> = OnceLock::new();
-        ENV.get_or_init(|| ort::init().with_name("albumcraft").with_telemetry(false).build().map_err(|e| e.to_string())).as_ref().map_err(String::clone)
+        ENV.get_or_init(|| library::init()?.with_name("albumcraft").with_telemetry(false).build().map_err(|e| e.to_string())).as_ref().map_err(String::clone)
     }
 
     fn ports(outlets: &[Outlet]) -> Vec<Port> {
@@ -171,7 +239,14 @@ mod imp {
     use super::{Port, Tensor};
     use std::path::Path;
 
-    pub const AVAILABLE: bool = false;
+    pub fn available() -> bool {
+        false
+    }
+
+    pub fn missing_library() -> Option<String> {
+        None
+    }
+
     const MISSING: &str = "this build of AlbumCraft cannot run networks";
 
     pub struct Network {

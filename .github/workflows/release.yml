@@ -44,9 +44,14 @@ jobs:
 
   linux:
     needs: version
-    # Ubuntu 24.04: the prebuilt ONNX Runtime (AI features) needs glibc 2.38 and GCC 13's libstdc++,
-    # so the packages run on Ubuntu 24.04, Debian 13 and newer (the Flatpak brings its own runtime).
+    # package.sh links against glibc 2.35 with cargo-zigbuild, whatever this machine has, and
+    # packages Microsoft's ONNX Runtime library (AI features, glibc 2.28) beside the program: the
+    # packages run on Ubuntu 22.04, Debian 12 and newer (the Flatpak brings its own runtime).
     runs-on: ubuntu-24.04
+    env:
+      ZIG_VERSION: 0.17.1
+      ZIG_SHA256: 3581863e3cbcfd0fce0efc682ce7e9e93da96668a977791d356a26d2a7e9b17a
+      CARGO_ZIGBUILD_VERSION: 0.24.1
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build dependencies and packaging tools
@@ -57,6 +62,15 @@ jobs:
             desktop-file-utils appstream zsync
           rustup toolchain install stable --profile minimal
           rustup default stable
+      - name: zig and cargo-zigbuild (linking against an older glibc)
+        run: |
+          set -euo pipefail
+          zig="zig-x86_64-linux-$ZIG_VERSION"
+          curl --proto '=https' -fsSL -o "$RUNNER_TEMP/$zig.tar.xz" "https://ziglang.org/download/$ZIG_VERSION/$zig.tar.xz"
+          echo "$ZIG_SHA256  $RUNNER_TEMP/$zig.tar.xz" | sha256sum -c -
+          tar -C "$HOME" -xf "$RUNNER_TEMP/$zig.tar.xz"
+          echo "$HOME/$zig" >> "$GITHUB_PATH"
+          cargo install --locked "cargo-zigbuild@$CARGO_ZIGBUILD_VERSION"
       - uses: storytold/craft-common-actions/actions/install-nfpm@main
       - name: Build and package (tar.gz, deb, AppImage)
         run: packaging/linux/package.sh
@@ -64,7 +78,7 @@ jobs:
         run: |
           sudo apt-get install -y ./dist/release/*.deb
           albumcraft --version
-          dpkg -L albumcraft | grep -E 'bin/|applications/|metainfo/|256x256'
+          dpkg -L albumcraft | grep -E 'bin/|lib/albumcraft/|applications/|metainfo/|256x256'
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: linux

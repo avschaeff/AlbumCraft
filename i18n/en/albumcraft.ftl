@@ -222,6 +222,7 @@ settings-ai-tags = Tag suggestions
 settings-ai-tags-text = tags proposed from what is in the picture.
 settings-ai-intro = Finding faces, searching by describing a picture, proposing tags. Everything is computed on this computer: no picture, face or search text is sent anywhere. The networks these features need are downloaded only when you ask, from AlbumCraft's own releases.
 settings-ai-unavailable = This build of AlbumCraft cannot run networks: these features are not available in it.
+settings-ai-library-missing = The file { $file } that comes with AlbumCraft was not found beside the program, so it cannot run networks: these features are not available. Installing AlbumCraft again puts it back.
 settings-ai-networks = Networks
 # $size is like "12.5 MB"
 settings-ai-pack-size = { $size }  ·  licence: { $licence }

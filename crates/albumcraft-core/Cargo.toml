@@ -11,6 +11,8 @@ repository.workspace = true
 default = ["onnx"]
 # ONNX Runtime linked in (see crates/albumcraft-ai).
 onnx = ["albumcraft-ai/onnx"]
+# ONNX Runtime loaded from its library file instead (the Linux packages).
+onnx-dynamic = ["onnx", "albumcraft-ai/onnx-dynamic"]
 
 [dependencies]
 albumcraft-ai.workspace = true

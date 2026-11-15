@@ -66,9 +66,10 @@ Download the build for your system from the
 [releases](https://github.com/kbarni/AlbumCraft/releases):
 
 - **Windows**: the `.msi` installer, or the portable `-portable.zip` (unpack and run `albumcraft.exe`).
-- **Linux** (Ubuntu 24.04, Debian 13 or newer; the Flatpak runs anywhere): the `.deb` for Debian, Ubuntu and their relatives (`sudo apt install ./albumcraft-….deb`),
+- **Linux** (Ubuntu 22.04, Debian 12 or newer; the Flatpak runs anywhere): the `.deb` for Debian, Ubuntu and their relatives (`sudo apt install ./albumcraft-….deb`),
   the `.flatpak` (`flatpak install --user albumcraft-….flatpak`), the `.AppImage` (make it
-  executable and run it) or the `.tar.gz` (unpack and run `albumcraft`).
+  executable and run it) or the `.tar.gz` (unpack and run `albumcraft`;
+  the AI features need the `libonnxruntime.so` beside it).
 - **macOS** (Apple Silicon, macOS 13.4 or newer): open the `.dmg` and drag `AlbumCraft.app` to Applications.
 
 The builds are not signed: on macOS, right-click the app and choose *Open* the first time; on

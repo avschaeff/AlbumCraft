@@ -3,16 +3,21 @@
 #
 #   $DIST/albumcraft-<version>-linux-<arch>.tar.gz          unpack and run ./albumcraft
 #   $DIST/albumcraft-<version>-linux-<arch>.deb             Debian, Ubuntu, Mint, Pop!_OS, ...
-#   $DIST/albumcraft-<version>-linux-<arch>.AppImage        any distribution with glibc >= the build host's
+#   $DIST/albumcraft-<version>-linux-<arch>.AppImage        any distribution with glibc >= $GLIBC
 #   $DIST/albumcraft-<version>-linux-<arch>.AppImage.zsync  delta updates (needs zsyncmake)
 #
 # The Flatpak bundle is made from the .deb afterwards by flatpak-bundle.sh.
 #
 # Usage: packaging/linux/package.sh [--skip-build] [--formats "tar deb appimage"]
 #
-# Needs cargo; nfpm for the .deb (https://nfpm.goreleaser.com); appimagetool for the AppImage
-# (downloaded into $CARGO_TARGET_DIR, checksum-pinned, when it isn't on the PATH). Build on an
-# old distribution (CI: Ubuntu 24.04, glibc 2.39, the oldest the ONNX Runtime library allows) so the binary runs on newer ones. Optional:
+# Needs cargo with cargo-zigbuild and zig (`cargo install --locked cargo-zigbuild`, zig from
+# https://ziglang.org/download/): the program is linked against glibc $GLIBC whatever the build
+# machine has, so the packages run on Ubuntu 22.04, Debian 12 and newer. ONNX Runtime (the AI
+# features) is not linked in (Cargo feature `onnx-dynamic`): Microsoft's build of
+# libonnxruntime.so, which needs only glibc 2.28, is downloaded (checksum-pinned, kept in
+# $CARGO_TARGET_DIR) and packaged beside the program. Also needs nfpm for the .deb
+# (https://nfpm.goreleaser.com); appimagetool for the AppImage (downloaded into
+# $CARGO_TARGET_DIR, checksum-pinned, when it isn't on the PATH). Optional:
 # desktop-file-validate and appstreamcli check the metadata, zsyncmake writes the .zsync.
 set -euo pipefail
 # shellcheck source=../common.sh
@@ -25,32 +30,88 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --skip-build) SKIP_BUILD=1; shift ;;
     --formats) FORMATS="$2"; shift 2 ;;
-    -h | --help) sed -n '2,17p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,22p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
 has() { case " $FORMATS " in *" $1 "*) return 0 ;; *) return 1 ;; esac; }
 
 ARCH="$(uname -m)"
+# The oldest glibc the program runs with (Ubuntu 22.04; Debian 12 has 2.36). Keep nfpm.yaml's
+# libc6 dependency the same.
+GLIBC=2.35
+# Microsoft's ONNX Runtime release packaged with the program: the version the `ort` crate's own
+# prebuilt library has (ort-sys's dist.tsv), so every platform runs the same one.
+ONNXRUNTIME_VERSION=1.31.0
 case "$ARCH" in
-  x86_64) DEB_ARCH=amd64 ;;
-  aarch64 | arm64) ARCH=aarch64; DEB_ARCH=arm64 ;;
+  x86_64)
+    DEB_ARCH=amd64
+    ONNXRUNTIME_ARCH=x64
+    ONNXRUNTIME_SHA256=cc5c72baf5ae5c8238a6841f0897227be2d02826b9cf98eaf02fdefaeeb03a57 ;;
+  aarch64 | arm64)
+    ARCH=aarch64
+    DEB_ARCH=arm64
+    ONNXRUNTIME_ARCH=aarch64
+    ONNXRUNTIME_SHA256=c5b8b3cca31f3d643a3b313b8f42e2d0f16a4fcefd02cda343d97bd5306afaab ;;
   *) echo "unsupported architecture $ARCH" >&2; exit 2 ;;
 esac
+TARGET="$ARCH-unknown-linux-gnu"
 BASENAME="albumcraft-$VERSION-linux-$ARCH"
 echo "==> AlbumCraft $VERSION for Linux $ARCH ($FORMATS)"
 
 if [[ "$SKIP_BUILD" = 0 ]]; then
-  (cd "$ROOT" && cargo build --release --locked -p albumcraft)
+  command -v cargo-zigbuild >/dev/null || { echo "error: cargo-zigbuild not found (cargo install --locked cargo-zigbuild)" >&2; exit 1; }
+  command -v zig >/dev/null || { echo "error: zig not found (https://ziglang.org/download/)" >&2; exit 1; }
+  # The build machine's own libraries (ALSA) may use newer glibc symbols than $GLIBC has; the
+  # program is linked against their names only and runs with the ones of the user's system.
+  rustflags_var="CARGO_TARGET_$(echo "$TARGET" | tr 'a-z-' 'A-Z_')_RUSTFLAGS"
+  (cd "$ROOT" && env "$rustflags_var=-C link-arg=-Wl,--allow-shlib-undefined" \
+    cargo zigbuild --release --locked -p albumcraft --features onnx-dynamic --target "$TARGET.$GLIBC")
 fi
-BIN="$CARGO_TARGET_DIR/release/albumcraft"
+BIN="$CARGO_TARGET_DIR/$TARGET/release/albumcraft"
 WORK="$CARGO_TARGET_DIR/linux-package"
 STAGE="$WORK/root"
 rm -rf "$WORK"
 
+# The newest glibc version a file asks for must not be past $GLIBC.
+check_glibc() {
+  local newest
+  newest="$(objdump -T "$1" | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1)"
+  if [[ "$(printf '%s\n' "GLIBC_$GLIBC" "$newest" | sort -V | tail -1)" != "GLIBC_$GLIBC" ]]; then
+    echo "error: $1 needs $newest, newer than glibc $GLIBC" >&2
+    exit 1
+  fi
+  echo "$(basename "$1") needs ${newest:-no glibc}"
+}
+check_glibc "$BIN"
+
+# ---- ONNX Runtime: Microsoft's release, loaded by the program when an AI feature first runs ----
+ONNXRUNTIME="onnxruntime-linux-$ONNXRUNTIME_ARCH-$ONNXRUNTIME_VERSION"
+if [[ ! -f "$CARGO_TARGET_DIR/$ONNXRUNTIME.tgz" ]]; then
+  curl --proto '=https' -fsSL -o "$CARGO_TARGET_DIR/$ONNXRUNTIME.tgz.download" \
+    "https://github.com/microsoft/onnxruntime/releases/download/v$ONNXRUNTIME_VERSION/$ONNXRUNTIME.tgz"
+  verify_sha256 "$ONNXRUNTIME_SHA256" "$CARGO_TARGET_DIR/$ONNXRUNTIME.tgz.download"
+  mv "$CARGO_TARGET_DIR/$ONNXRUNTIME.tgz.download" "$CARGO_TARGET_DIR/$ONNXRUNTIME.tgz"
+fi
+verify_sha256 "$ONNXRUNTIME_SHA256" "$CARGO_TARGET_DIR/$ONNXRUNTIME.tgz"
+mkdir -p "$WORK/onnxruntime"
+tar -C "$WORK/onnxruntime" -xzf "$CARGO_TARGET_DIR/$ONNXRUNTIME.tgz" \
+  "$ONNXRUNTIME/lib/libonnxruntime.so.$ONNXRUNTIME_VERSION" "$ONNXRUNTIME/LICENSE" "$ONNXRUNTIME/ThirdPartyNotices.txt"
+ONNXRUNTIME_DIR="$WORK/onnxruntime/$ONNXRUNTIME"
+check_glibc "$ONNXRUNTIME_DIR/lib/libonnxruntime.so.$ONNXRUNTIME_VERSION"
+# The library and its licence texts, into a package directory.
+copy_onnxruntime() {
+  local lib="$1" docs="$2"
+  install -Dm644 "$ONNXRUNTIME_DIR/lib/libonnxruntime.so.$ONNXRUNTIME_VERSION" "$lib/libonnxruntime.so"
+  install -Dm644 "$ONNXRUNTIME_DIR/LICENSE" "$docs/LICENSE-ONNXRuntime"
+  install -Dm644 "$ONNXRUNTIME_DIR/ThirdPartyNotices.txt" "$docs/ThirdPartyNotices-ONNXRuntime.txt"
+}
+
 # ---- an FHS tree shared by the .deb, the AppImage and the Flatpak ------------------------------
 install -Dm755 "$BIN" "$STAGE/usr/bin/albumcraft"
 strip "$STAGE/usr/bin/albumcraft" 2>/dev/null || true
+# where the program looks for it: ../lib/albumcraft from its own folder
+copy_onnxruntime "$STAGE/usr/lib/albumcraft" "$STAGE/usr/share/doc/albumcraft"
 install -Dm644 "$HERE/$APP_ID.desktop" "$STAGE/usr/share/applications/$APP_ID.desktop"
 mkdir -p "$STAGE/usr/share/metainfo"
 sed -e "s/@VERSION@/$VERSION/g" -e "s/@DATE@/$BUILD_DATE/g" \
@@ -80,6 +141,8 @@ if has tar; then
   cp "$STAGE/usr/bin/albumcraft" "$HERE/$APP_ID.desktop" "$dir/"
   cp "$STAGE/usr/share/icons/hicolor/256x256/apps/$APP_ID.png" "$dir/"
   copy_docs "$dir"
+  # beside the program, the other place it looks
+  copy_onnxruntime "$dir" "$dir"
   tar -C "$WORK/tar" -czf "$DIST/$BASENAME.tar.gz" "$BASENAME"
   echo "wrote $DIST/$BASENAME.tar.gz"
 fi

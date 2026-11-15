@@ -32,7 +32,8 @@ When the user turns online maps on, map pictures and place searches come from Op
 
 AlbumCraft builds include ONNX Runtime (Copyright Microsoft Corporation, MIT License), linked in
 through the ort crate (pyke.io, MIT OR Apache-2.0), to run the networks of the optional AI
-features. No network is distributed with AlbumCraft: each is downloaded when the user asks, and
+features. The Linux packages carry it as Microsoft's own library file (libonnxruntime.so) with
+its licence and third-party notices (LICENSE-ONNXRuntime, ThirdPartyNotices-ONNXRuntime.txt). No network is distributed with AlbumCraft: each is downloaded when the user asks, and
 its licence is shown before.
 
 All other dependencies are Rust crates under their own licenses (see Cargo.lock; most are MIT

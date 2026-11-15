@@ -220,6 +220,7 @@ settings-ai-tags = Suggestions de mots-clés
 settings-ai-tags-text = des mots-clés proposés d'après le contenu de la photo.
 settings-ai-intro = Repérer les visages, chercher en décrivant une photo, proposer des mots-clés. Tout est calculé sur cet ordinateur : aucune photo, aucun visage ni aucun texte de recherche n'est envoyé nulle part. Les réseaux dont ces fonctions ont besoin ne sont téléchargés que si vous le demandez, depuis les versions publiées d'AlbumCraft.
 settings-ai-unavailable = Cette version d'AlbumCraft ne peut pas faire tourner de réseaux : ces fonctions n'y sont pas disponibles.
+settings-ai-library-missing = Le fichier { $file } fourni avec AlbumCraft est introuvable à côté du programme, qui ne peut donc pas faire tourner de réseaux : ces fonctions ne sont pas disponibles. Réinstaller AlbumCraft le remet en place.
 settings-ai-networks = Réseaux
 settings-ai-pack-size = { $size }  ·  licence : { $licence }
 settings-ai-remove = Supprimer

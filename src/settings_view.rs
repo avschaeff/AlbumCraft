@@ -406,7 +406,11 @@ impl App {
         note(ui, &tr!("settings-ai-intro"));
         if !crate::ai::runtime::available() {
             ui.add_space(4.0);
-            ui.label(RichText::new(tr!("settings-ai-unavailable")).color(t().bad));
+            let why = match crate::ai::runtime::missing_library() {
+                Some(file) => tr!("settings-ai-library-missing", file = file),
+                None => tr!("settings-ai-unavailable"),
+            };
+            ui.label(RichText::new(why).color(t().bad));
         }
 
         group(ui, &tr!("settings-ai-networks"));
