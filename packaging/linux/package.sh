@@ -17,7 +17,9 @@
 # libonnxruntime.so, which needs only glibc 2.28, is downloaded (checksum-pinned, kept in
 # $CARGO_TARGET_DIR) and packaged beside the program. Also needs nfpm for the .deb
 # (https://nfpm.goreleaser.com); appimagetool for the AppImage (downloaded into
-# $CARGO_TARGET_DIR, checksum-pinned, when it isn't on the PATH). Optional:
+# $CARGO_TARGET_DIR, checksum-pinned, when it isn't on the PATH), and for the AppImage dpkg-deb
+# (unpacks Ubuntu 22.04's libxkbcommon-x11, which it carries) and patchelf (likewise downloaded
+# when missing). Optional:
 # desktop-file-validate and appstreamcli check the metadata, zsyncmake writes the .zsync.
 set -euo pipefail
 # shellcheck source=../common.sh
@@ -30,7 +32,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --skip-build) SKIP_BUILD=1; shift ;;
     --formats) FORMATS="$2"; shift 2 ;;
-    -h | --help) sed -n '2,22p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,23p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -175,6 +177,64 @@ if has appimage; then
   cp "$HERE/$APP_ID.desktop" "$APPDIR/$APP_ID.desktop"
   cp "$STAGE/usr/share/icons/hicolor/256x256/apps/$APP_ID.png" "$APPDIR/$APP_ID.png"
   ln -s "$APP_ID.png" "$APPDIR/.DirIcon"
+
+  # winit's X11 backend dlopens libxkbcommon-x11.so.0 (with libxcb-xkb.so.1), which only Qt pulls
+  # in: GTK desktops (Cinnamon, Xfce, MATE) often lack it, and the window then fails to open. The
+  # AppImage carries Ubuntu 22.04's copies (glibc 2.35, checksums from its Packages index), with
+  # libxkbcommon.so.0 of the same version: libxkbcommon-x11 fills libxkbcommon's private structs,
+  # and 1.4.0's with the system's 1.6.0 crashes. The program finds them through a RUNPATH set on
+  # the AppImage's copy only, and libxkbcommon-x11 finds the others beside itself through its own;
+  # libxcb.so.1 stays the system's (every X11 desktop has it).
+  PATCHELF_VERSION=0.18.0
+  case "$ARCH" in
+    x86_64)
+      UBUNTU_MIRROR=https://archive.ubuntu.com/ubuntu
+      PATCHELF_SHA256=ce84f2447fb7a8679e58bc54a20dc2b01b37b5802e12c57eece772a6f14bf3f0
+      XKB_SHA256=a0470edb237d52b71ad41f755c043164abed01423585ed5ea19525b3baaf84f7
+      XKB_X11_SHA256=e29c40fab6e0f055218aee4c7e60cd61ea82283229d7ac7ac02e226e92a5b0d5
+      XCB_XKB_SHA256=4cf69af3ff6a60b63f9f6ea6e7d27471114c6bcbcf3f981f7b88f361029e5eb8 ;;
+    aarch64)
+      UBUNTU_MIRROR=https://ports.ubuntu.com/ubuntu-ports
+      PATCHELF_SHA256=ae13e2effe077e829be759182396b931d8f85cfb9cfe9d49385516ea367ef7b2
+      XKB_SHA256=451be798e301077cde9d34afe00886e6c77699b1734985c2191a7a4ba783911d
+      XKB_X11_SHA256=a11f15cd8ecaf166f545acc2dccb0026378e467f841f1dd19248ead79f237162
+      XCB_XKB_SHA256=2ab72c0e6ca4ace102f330a83055a7655d2ef9b00ff8abc2c217c0aed2980628 ;;
+  esac
+  # Download $1 to $CARGO_TARGET_DIR/$3 once, checking its SHA-256 ($2) each time.
+  fetch_pinned() {
+    local url="$1" sha="$2" file="$CARGO_TARGET_DIR/$3"
+    if [[ ! -f "$file" ]]; then
+      curl --proto '=https' -fsSL -o "$file.download" "$url"
+      verify_sha256 "$sha" "$file.download"
+      mv "$file.download" "$file"
+    fi
+    verify_sha256 "$sha" "$file"
+  }
+  command -v dpkg-deb >/dev/null || { echo "error: dpkg-deb not found (it unpacks Ubuntu's libxkbcommon-x11 for the AppImage)" >&2; exit 1; }
+  PATCHELF="${PATCHELF:-$(command -v patchelf || true)}"
+  if [[ -z "$PATCHELF" ]]; then
+    fetch_pinned "https://github.com/NixOS/patchelf/releases/download/$PATCHELF_VERSION/patchelf-$PATCHELF_VERSION-$ARCH.tar.gz" \
+      "$PATCHELF_SHA256" "patchelf-$PATCHELF_VERSION-$ARCH.tar.gz"
+    mkdir -p "$WORK/patchelf"
+    tar -C "$WORK/patchelf" -xzf "$CARGO_TARGET_DIR/patchelf-$PATCHELF_VERSION-$ARCH.tar.gz" ./bin/patchelf
+    PATCHELF="$WORK/patchelf/bin/patchelf"
+  fi
+  # package, version, pool directory, checksum, library file
+  while read -r pkg ver pool sha lib; do
+    deb="${pkg}_${ver}_$DEB_ARCH.deb"
+    fetch_pinned "$UBUNTU_MIRROR/pool/main/$pool/$deb" "$sha" "ubuntu-$deb"
+    mkdir -p "$WORK/ubuntu/$pkg"
+    dpkg-deb -x "$CARGO_TARGET_DIR/ubuntu-$deb" "$WORK/ubuntu/$pkg"
+    install -Dm644 "$(readlink -f "$WORK/ubuntu/$pkg/usr/lib/$ARCH-linux-gnu/$lib")" "$APPDIR/usr/lib/albumcraft/$lib"
+    install -Dm644 "$WORK/ubuntu/$pkg/usr/share/doc/$pkg/copyright" "$APPDIR/usr/share/doc/albumcraft/copyright-$pkg"
+    check_glibc "$APPDIR/usr/lib/albumcraft/$lib"
+  done <<EOF
+libxkbcommon0 1.4.0-1 libx/libxkbcommon $XKB_SHA256 libxkbcommon.so.0
+libxkbcommon-x11-0 1.4.0-1 libx/libxkbcommon $XKB_X11_SHA256 libxkbcommon-x11.so.0
+libxcb-xkb1 1.14-3ubuntu3 libx/libxcb $XCB_XKB_SHA256 libxcb-xkb.so.1
+EOF
+  "$PATCHELF" --set-rpath '$ORIGIN' "$APPDIR/usr/lib/albumcraft/libxkbcommon-x11.so.0"
+  "$PATCHELF" --set-rpath '$ORIGIN/../lib/albumcraft' "$APPDIR/usr/bin/albumcraft"
 
   TOOL="${APPIMAGETOOL:-$(command -v appimagetool || true)}"
   if [[ -z "$TOOL" ]]; then

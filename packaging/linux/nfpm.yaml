@@ -38,6 +38,8 @@ overrides:
       - libwayland-client0
       - libx11-6
       - libx11-xcb1
+      # winit's X11 backend loads it; only Qt pulls it in, so GTK desktops may not have it
+      - libxkbcommon-x11-0
       - libxcursor1
       - libxi6
       - libxrandr2
