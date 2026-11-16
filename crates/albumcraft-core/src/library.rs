@@ -499,7 +499,11 @@ struct Location {
 
 /// The folder the user chose for the library, or None: the app's data folder.
 pub fn library_folder() -> Option<PathBuf> {
-    let text = std::fs::read_to_string(location_path()?).ok()?;
+    read_location(&location_path()?)
+}
+
+fn read_location(path: &Path) -> Option<PathBuf> {
+    let text = std::fs::read_to_string(path).ok()?;
     let loc: Location = serde_json::from_str(&text).ok()?;
     (!loc.folder.trim().is_empty()).then(|| PathBuf::from(loc.folder))
 }
@@ -1868,7 +1872,8 @@ mod location_tests {
         assert_eq!(relocate_between(br#"{"x":1}"#, &old, &new, Some(&b), remember), Ok(Relocated::Moved(new.clone())));
         assert!(!old.exists(), "the old file is removed");
         assert_eq!(std::fs::read(&new).unwrap(), br#"{"x":1}"#);
-        assert!(std::fs::read_to_string(&loc).unwrap().contains(&*b.to_string_lossy()));
+        // read back, not searched in the text: JSON doubles Windows' backslashes
+        assert_eq!(read_location(&loc), Some(b.clone()));
         // a library there already is left alone
         std::fs::write(&old, b"{}").unwrap();
         let remember = |f: Option<&Path>| write_location(&loc, f);
