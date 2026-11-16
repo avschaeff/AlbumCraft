@@ -216,6 +216,9 @@ pub struct Store {
     pub print: crate::print::PrintSettings,
     /// Appearance: "system", "light" or "dark".
     pub theme: String,
+    /// The look besides light / dark: "calm" (flat, one-colour icons) or "bright" (gradients,
+    /// colour icons); see the window's `theme::Style`.
+    pub style: String,
     /// The interface's language, as a code ("en", "fr"…); empty = the system's.
     pub language: String,
     /// Slideshow (and movie) settings.
@@ -305,6 +308,7 @@ impl Default for Store {
             dont_ask_end_2up: false,
             print: Default::default(),
             theme: "system".into(),
+            style: "calm".into(),
             language: String::new(),
             slideshow: Default::default(),
             online_maps: None,

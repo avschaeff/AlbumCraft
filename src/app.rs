@@ -572,7 +572,7 @@ impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, shot: Option<PathBuf>) -> Self {
         let t_new = std::time::Instant::now();
         let ctx = cc.egui_ctx.clone();
-        crate::theme::apply(&ctx, crate::theme::Mode::System, true);
+        crate::theme::apply(&ctx, crate::theme::Mode::System, crate::theme::Style::Calm, true);
         let (tx, rx) = std::sync::mpsc::channel();
         let wake_ctx = ctx.clone();
         let mut lib: Box<dyn Library> = Box::new(LocalLibrary::new(tx.clone(), Arc::new(move || wake_ctx.request_repaint())));
@@ -605,6 +605,9 @@ impl App {
         };
         if let Ok(v) = std::env::var("ALBUMCRAFT_THEME") {
             store.theme = v;
+        }
+        if let Ok(v) = std::env::var("ALBUMCRAFT_STYLE") {
+            store.style = v;
         }
         crate::i18n::set_language(&store.language);
         // after the language: a script the built-in fonts lack needs a system font
@@ -2408,7 +2411,7 @@ impl eframe::App for App {
     }
 
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        crate::theme::apply(ctx, crate::theme::Mode::from_name(&self.store.theme), false);
+        crate::theme::apply(ctx, crate::theme::Mode::from_name(&self.store.theme), crate::theme::Style::from_name(&self.store.style), false);
         let t0 = std::time::Instant::now();
         self.thumb_budget = 8;
         self.process_results();

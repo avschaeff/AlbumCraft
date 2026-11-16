@@ -36,6 +36,10 @@ settings-language-system = Same as system ({ $language })
 settings-language-note = Other languages can be added as translation files; see i18n/ in the source code.
 settings-theme = Theme
 theme-system = Same as system
+settings-style = Style
+style-calm = Calm
+style-bright = Bright
+settings-style-note = Bright adds gradients and colour icons.
 theme-light = Light
 theme-dark = Dark
 

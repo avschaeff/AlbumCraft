@@ -126,30 +126,27 @@ fn icon_btn(ui: &mut egui::Ui, glyph: &str, tip: &str) -> egui::Response {
     if resp.hovered() {
         ui.painter().rect_filled(rect, 17, t().surface_hover);
     }
-    ui.painter().text(rect.center(), egui::Align2::CENTER_CENTER, glyph, egui::FontId::proportional(17.0), t().text);
+    crate::color_icons::paint(ui.ctx(), ui.painter(), glyph, rect.center(), 17.0, t().text);
     resp.on_hover_cursor(egui::CursorIcon::PointingHand).on_hover_text(tip)
 }
 
 /// A rounded text button. `primary` fills it with the accent colour.
 fn pill(ui: &mut egui::Ui, label: &str, primary: bool) -> egui::Response {
-    let galley = ui.painter().layout_no_wrap(
-        label.to_string(),
-        egui::FontId::proportional(13.5),
-        if primary { Color32::WHITE } else { t().text },
-    );
-    let size = egui::vec2(galley.size().x + 28.0, 34.0);
+    let colour = if primary { Color32::WHITE } else { t().text };
+    let text = crate::color_icons::IconLabel::new(ui.painter(), label, egui::FontId::proportional(13.5), colour);
+    let size = egui::vec2(text.size().x + 28.0, 34.0);
     let (rect, resp) = ui.allocate_exact_size(size, Sense::click());
-    let fill = match (primary, resp.hovered()) {
-        (true, false) => t().accent,
-        (true, true) => t().accent.gamma_multiply(0.88),
-        (false, false) => t().surface,
-        (false, true) => t().surface_hover,
-    };
-    ui.painter().rect_filled(rect, 17, fill);
-    if !primary {
+    let hovered = resp.hovered();
+    if primary {
+        // the main button: a gradient in the Bright style, the accent colour in the Calm one
+        let (top, bottom) = (t().primary_top, t().primary_bottom);
+        let k = if hovered { 0.88 } else { 1.0 };
+        crate::theme::paint_gradient(ui.painter(), rect, 17.0, top.gamma_multiply(k), bottom.gamma_multiply(k));
+    } else {
+        ui.painter().rect_filled(rect, 17, if hovered { t().surface_hover } else { t().surface });
         ui.painter().rect_stroke(rect, 17, Stroke::new(1.0, t().border), StrokeKind::Inside);
     }
-    ui.painter().galley(rect.center() - galley.size() / 2.0, galley, Color32::WHITE);
+    text.paint(ui.ctx(), ui.painter(), rect.center(), colour);
     resp.on_hover_cursor(egui::CursorIcon::PointingHand)
 }
 
@@ -162,9 +159,9 @@ fn chip(ui: &mut egui::Ui, label: &str, on: bool) -> egui::Response {
 /// symbol that looks the same everywhere).
 fn chip_with_flag(ui: &mut egui::Ui, label: &str, on: bool, flag: bool) -> egui::Response {
     let color = if on { t().accent } else { t().text };
-    let galley = ui.painter().layout_no_wrap(label.to_string(), egui::FontId::proportional(13.0), color);
+    let text = crate::color_icons::IconLabel::new(ui.painter(), label, egui::FontId::proportional(13.0), color);
     let icon = if flag { if label.is_empty() { 14.0 } else { 20.0 } } else { 0.0 };
-    let (rect, resp) = ui.allocate_exact_size(egui::vec2(galley.size().x + 24.0 + icon, 30.0), Sense::click());
+    let (rect, resp) = ui.allocate_exact_size(egui::vec2(text.size().x + 24.0 + icon, 30.0), Sense::click());
     let rect_text = Rect::from_min_max(Pos2::new(rect.left() + icon, rect.top()), rect.max);
     let fill = if on {
         t().select_bg
@@ -180,7 +177,7 @@ fn chip_with_flag(ui: &mut egui::Ui, label: &str, on: bool, flag: bool) -> egui:
         let c = Pos2::new(rect.left() + 12.0 + 7.0, rect.center().y);
         paint_flag(ui.painter(), c, 6.5, if on { t().pick } else { Color32::TRANSPARENT }, color);
     }
-    ui.painter().galley(rect_text.center() - galley.size() / 2.0, galley, color);
+    text.paint(ui.ctx(), ui.painter(), rect_text.center(), color);
     resp.on_hover_cursor(egui::CursorIcon::PointingHand)
 }
 
@@ -199,13 +196,13 @@ fn nav_row_with(ui: &mut egui::Ui, icon: &str, label: &str, sub: Option<&str>, c
     }
     let p = ui.painter();
     if selected {
-        p.rect_filled(rect, 9, t().select_bg);
+        crate::theme::paint_gradient(p, rect, 9.0, t().select_top, t().select_bottom);
     } else if resp.hovered() {
         p.rect_filled(rect, 9, t().surface_hover);
     }
     let color = if selected { t().accent } else { t().text };
     if !icon.is_empty() {
-        p.text(Pos2::new(rect.left() + 18.0, rect.center().y), egui::Align2::CENTER_CENTER, icon, egui::FontId::proportional(15.0), color);
+        crate::color_icons::paint(ui.ctx(), p, icon, Pos2::new(rect.left() + 18.0, rect.center().y), 15.0, color);
     }
     let wrap = rect.width() - 80.0;
     let galley = p.layout(label.to_string(), egui::FontId::proportional(13.5), color, wrap);
@@ -299,6 +296,7 @@ impl App {
             .exact_size(60.0)
             .frame(egui::Frame::new().fill(t().lightbox_bg).inner_margin(egui::Margin::symmetric(PAD, 8)))
             .show(ui, |ui| {
+                crate::theme::panel_gradient(ui, egui::Margin::symmetric(PAD, 8), t().band_top, t().band_bottom);
                 let bottom = ui.max_rect().bottom() + 8.0;
                 ui.painter().hline(ui.max_rect().x_range().expand(PAD as f32), bottom, Stroke::new(1.0, t().border));
                 // the title gets a share of the bar and is cut short when it is longer (a longer
@@ -395,6 +393,7 @@ impl App {
             .size_range(200.0..=380.0)
             .frame(egui::Frame::new().fill(t().left_bg).inner_margin(egui::Margin::symmetric(12, 14)).stroke(Stroke::new(1.0, t().border)))
             .show(ui, |ui| {
+                crate::theme::panel_gradient(ui, egui::Margin::symmetric(12, 14), t().side_top, t().side_bottom);
                 // brand
                 ui.horizontal(|ui| {
                     let (r, _) = ui.allocate_exact_size(Vec2::splat(28.0), Sense::hover());

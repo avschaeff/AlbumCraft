@@ -71,11 +71,11 @@ fn big_button(ui: &mut egui::Ui, icon: &str, label: &str, tip: &str) -> egui::Re
     let enabled = ui.is_enabled();
     let p = ui.painter();
     if enabled && resp.hovered() {
-        p.rect_filled(rect, 6, t().hover_wash);
+        crate::theme::paint_gradient(p, rect, 6.0, t().hover_wash, t().select_bg);
         p.rect_stroke(rect, 6, Stroke::new(1.0, t().select_border), egui::StrokeKind::Inside);
     }
     let colour = if enabled { t().text } else { t().text_weak };
-    p.text(rect.center_top() + egui::vec2(0.0, 22.0), egui::Align2::CENTER_CENTER, icon, egui::FontId::proportional(24.0), colour);
+    crate::color_icons::paint(ui.ctx(), p, icon, rect.center_top() + egui::vec2(0.0, 22.0), 24.0, colour);
     p.text(rect.center_bottom() - egui::vec2(0.0, 11.0), egui::Align2::CENTER_CENTER, label, egui::FontId::proportional(12.0), colour);
     resp.on_hover_text(tip)
 }
@@ -84,7 +84,7 @@ const BAR_SQUARE: Vec2 = egui::vec2(34.0, 30.0);
 
 /// A square icon button of the selection bar.
 fn bar_icon(ui: &mut egui::Ui, icon: &str, tip: &str) -> egui::Response {
-    ui.add_sized(BAR_SQUARE, egui::Button::new(RichText::new(icon).size(17.0))).on_hover_text(tip)
+    ui.add_sized(BAR_SQUARE, egui::Button::new(crate::color_icons::atoms(ui.ctx(), icon, 17.0))).on_hover_text(tip)
 }
 
 /// A square button showing the reject mark, coloured when on.
@@ -162,14 +162,14 @@ impl App {
     pub fn album_menu(&mut self, ui: &mut egui::Ui, label: String, ids: &[usize]) {
         let mut add_to: Option<usize> = None;
         let mut new_album = false;
-        ui.menu_button(label, |ui| {
+        ui.menu_button(crate::color_icons::atoms(ui.ctx(), label, 13.5), |ui| {
             for (i, a) in self.store.albums.iter().enumerate() {
                 if ui.button(&a.name).clicked() {
                     add_to = Some(i);
                     ui.close();
                 }
             }
-            if ui.button(format!("{} {}", icons::ADD, tr!("album-new"))).clicked() {
+            if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::ADD, tr!("album-new")), 13.5))).clicked() {
                 new_album = true;
                 ui.close();
             }
@@ -400,6 +400,7 @@ impl App {
         egui::Panel::bottom("status")
             .frame(egui::Frame::new().fill(t().status_bg).inner_margin(egui::Margin::symmetric(8, 3)))
             .show(ui, |ui| {
+                crate::theme::panel_gradient(ui, egui::Margin::symmetric(8, 3), t().band_top, t().band_bottom);
                 ui.horizontal(|ui| {
                     // what is in the tray, as a status line
                     let info = self.selection_info();
@@ -534,6 +535,7 @@ impl App {
             .exact_size(SELECTION_BAR_H)
             .frame(egui::Frame::new().fill(t().tray_bg).inner_margin(egui::Margin::symmetric(10, 6)).stroke(Stroke::new(1.0, t().border)))
             .show(ui, |ui| {
+                crate::theme::panel_gradient(ui, egui::Margin::symmetric(10, 6), t().band_top, t().band_bottom);
                 let width = ui.available_width();
                 let labels = width > 1180.0;
                 egui::ScrollArea::horizontal().scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::VisibleWhenNeeded).show(ui, |ui| {
@@ -608,6 +610,7 @@ impl App {
             .exact_size(TRAY_H)
             .frame(egui::Frame::new().fill(t().tray_bg).inner_margin(egui::Margin::symmetric(8, 8)).stroke(Stroke::new(1.0, t().border)))
             .show(ui, |ui| {
+                crate::theme::panel_gradient(ui, egui::Margin::symmetric(8, 8), t().band_top, t().band_bottom);
                 let width = ui.available_width();
                 egui::ScrollArea::horizontal().scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::VisibleWhenNeeded).show(ui, |ui| {
                     ui.horizontal_centered(|ui| {
@@ -738,7 +741,7 @@ impl App {
                 self.start_slideshow(list, id);
                 ui.close();
             }
-            if self.smart.pack.is_some() && !self.photos[id].is_sample() && ui.button(format!("{} {}", icons::SEARCH, tr!("ctx-more-like-this"))).on_hover_text(tr!("ctx-more-like-this-hint")).clicked() {
+            if self.smart.pack.is_some() && !self.photos[id].is_sample() && ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::SEARCH, tr!("ctx-more-like-this")), 13.5))).on_hover_text(tr!("ctx-more-like-this-hint")).clicked() {
                 self.more_like_this(id);
                 ui.close();
             }
@@ -766,15 +769,15 @@ impl App {
                     self.selection.clear();
                     ui.close();
                 }
-            if ui.button(format!("{} {}", icons::TAG, tr!("ctx-tags"))).clicked() {
+            if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::TAG, tr!("ctx-tags")), 13.5))).clicked() {
                 self.dialog = Some(Dialog::Tag { tags: String::new(), people: String::new() });
                 ui.close();
             }
-            if ui.button(format!("{} {}", icons::LOCATION, tr!("ctx-location"))).clicked() {
+            if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::LOCATION, tr!("ctx-location")), 13.5))).clicked() {
                 self.start_placing(tray.clone());
                 ui.close();
             }
-            if ui.button(format!("{} {}", icons::EXPORT, tr!("ctx-export"))).clicked() {
+            if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::EXPORT, tr!("ctx-export")), 13.5))).clicked() {
                 self.open_export(tray.clone());
                 ui.close();
             }
