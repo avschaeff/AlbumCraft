@@ -697,6 +697,7 @@ effect-focal-bw = N & B focal
 effect-graduated-tint = Teinte dégradée
 op-rotate-right = Pivoter à droite
 op-rotate-left = Pivoter à gauche
+op-rotate-half = Pivoter de 180°
 op-crop = Recadrer
 op-straighten = Redresser { $angle }°
 op-perspective-v = Perspective, verticale { $v }
@@ -799,7 +800,8 @@ edit-list = Retouches de cette photo :
 edit-list-none = (aucune — c'est l'original)
 edit-step-hint =
     { $label }
-    Cliquez pour revenir à cette étape (les suivantes sont retirées ; Annuler les ramène)
+    Cliquez pour la modifier
+edit-step-remove = Retirer cette retouche
 edit-copy-hint = Copier ces retouches pour les coller sur d'autres photos (Ctrl+Maj+C)
 edit-paste-n = Coller { $n }
 edit-paste-hint = Ajouter les retouches copiées à cette photo (Ctrl+Maj+V)
@@ -879,7 +881,7 @@ edit-effects-add = Ajouter sur ou autour de la photo
 edit-add-instant = Cadre d'instantané
 edit-add-text = Texte
 edit-your-text = Votre texte
-edit-effects-note = Les effets s'appliquent par-dessus toutes les autres retouches. Ajoutez-en un pour le régler ici.
+edit-effects-note = Les effets s'appliquent par-dessus toutes les autres retouches, toujours dans le même ordre : vignettage, coins arrondis, bordure, texte, ombre. Choisissez-en un pour le régler ici.
 edit-p-amount = Intensité
 edit-p-size = Taille
 edit-p-width = Largeur

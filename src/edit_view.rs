@@ -518,21 +518,40 @@ impl App {
                     }
                     // a fixed height for up to six steps: inside a bottom panel, a scroll area left
                     // to size itself can get stuck at the panel's first, tiny height (one line)
-                    let row = ui.fonts_mut(|f| f.row_height(&egui::FontId::proportional(12.0))) + ui.spacing().item_spacing.y;
+                    let row = ui.fonts_mut(|f| f.row_height(&egui::FontId::proportional(12.0))).max(ui.spacing().interact_size.y) + ui.spacing().item_spacing.y;
                     let h = row * edits.len().clamp(0, 6) as f32;
-                    let mut back_to = None;
+                    let (mut open, mut remove) = (None, None);
                     egui::ScrollArea::vertical().id_salt("edit_steps").min_scrolled_height(h).max_height(h).show(ui, |ui| {
                         for (i, e) in edits.iter().enumerate() {
-                            let t = RichText::new(format!("{}. {}", i + 1, crate::labels::op(e))).size(12.0);
-                            let last = i + 1 == edits.len();
-                            let r = ui.add(egui::Label::new(if last { t.strong() } else { t }).truncate().sense(Sense::click()));
-                            if !last && r.on_hover_text(tr!("edit-step-hint", label = crate::labels::op(e))).on_hover_cursor(egui::CursorIcon::PointingHand).clicked() {
-                                back_to = Some(i + 1);
-                            }
+                            let label = crate::labels::op(e);
+                            ui.horizontal(|ui| {
+                                ui.spacing_mut().item_spacing.x = 4.0;
+                                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                    let x = ui.add(egui::Label::new(RichText::new(icons::CLOSE).size(12.0).weak()).selectable(false).sense(Sense::click()));
+                                    if x.on_hover_text(tr!("edit-step-remove")).on_hover_cursor(egui::CursorIcon::PointingHand).clicked() {
+                                        remove = Some(i);
+                                    }
+                                    ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                                        let shown = self.step_shown(&edits, i);
+                                        let t = RichText::new(&label).size(12.0);
+                                        let r = ui.add(egui::Label::new(if shown { t.strong() } else { t }).truncate().selectable(false).sense(Sense::click()));
+                                        if Self::step_opens(e) {
+                                            if r.on_hover_text(tr!("edit-step-hint", label = label)).on_hover_cursor(egui::CursorIcon::PointingHand).clicked() {
+                                                open = Some(i);
+                                            }
+                                        } else {
+                                            r.on_hover_text(&label);
+                                        }
+                                    });
+                                });
+                            });
                         }
                     });
-                    if let Some(n) = back_to {
-                        self.change_edits(id, "", |e| e.truncate(n));
+                    if let Some(i) = open {
+                        self.open_step(id, i);
+                    }
+                    if let Some(i) = remove {
+                        self.change_edits(id, "", |e| crate::steps::remove_step(e, i));
                     }
                     // wraps: in some languages the three buttons are wider than the panel
                     ui.horizontal_wrapped(|ui| {
@@ -952,23 +971,47 @@ impl App {
         }
     }
 
-    /// The effect being edited: the last edit step when it is one.
-    fn current_decor(&self, id: usize) -> Option<Decor> {
-        match self.meta(id).and_then(|m| m.edits.last()) {
-            Some(EditOp::Decor(d)) => Some(d.clone()),
-            _ => None,
+    /// The step has settings a click on it brings back.
+    fn step_opens(e: &EditOp) -> bool {
+        matches!(e, EditOp::Crop(_) | EditOp::Straighten(_) | EditOp::Perspective { .. } | EditOp::Adjust(_) | EditOp::Look { .. } | EditOp::Decor(_))
+    }
+
+    /// The step at `i` is the effect whose settings the Effects tab is showing.
+    fn step_shown(&self, edits: &[EditOp], i: usize) -> bool {
+        self.edit.tab == Tab::Effects && self.edit.decor.is_some() && crate::steps::slot_at(edits, i) == self.edit.decor
+    }
+
+    /// Bring back the settings of the step at `i` of the picture's edits: the panel that made it,
+    /// showing its values (the crop tool for a crop).
+    fn open_step(&mut self, id: usize, i: usize) {
+        let edits = self.edits(id);
+        match edits.get(i) {
+            Some(EditOp::Crop(_)) => {
+                self.edit.tab = Tab::Edit;
+                self.start_crop();
+            }
+            Some(EditOp::Straighten(_) | EditOp::Perspective { .. } | EditOp::Adjust(_)) => {
+                self.edit.tab = Tab::Edit;
+                self.edit.advanced = true;
+            }
+            Some(EditOp::Look { .. }) => self.edit.tab = Tab::Presets,
+            Some(EditOp::Decor(_)) => {
+                self.edit.tab = Tab::Effects;
+                self.edit.decor = crate::steps::slot_at(&edits, i);
+            }
+            _ => {}
         }
     }
 
-    /// Change the last effect when it is of the same kind, otherwise add this one.
-    fn set_decor(&mut self, id: usize, d: Decor) {
-        self.change_edits(id, "decor", |e| match e.last_mut() {
-            Some(EditOp::Decor(cur)) if cur.same_kind(&d) => *cur = d,
-            _ => e.push(EditOp::Decor(d)),
-        });
+    /// The effect whose settings the Effects tab shows, when the picture has it.
+    fn current_decor(&self, id: usize) -> Option<(crate::steps::Slot, Decor)> {
+        let slot = self.edit.decor?;
+        let d = crate::steps::decor_of(self.meta(id).map(|m| m.edits.as_slice()).unwrap_or(&[]), slot)?;
+        Some((slot, d))
     }
 
     fn effects_tab(&mut self, ui: &mut egui::Ui) {
+        use crate::steps::Slot;
         let id = self.edit.id;
         ui.label(RichText::new(tr!("edit-effects-add")).size(12.0).weak());
         let white = [255, 255, 255];
@@ -980,22 +1023,61 @@ impl App {
             (icons::ROUNDED, tr!("decor-rounded"), Decor::Rounded { radius: 0.06, background: white }),
             (icons::TEXT, tr!("edit-add-text"), Decor::Text(TextOverlay { text: tr!("edit-your-text"), ..Default::default() })),
         ];
+        // the plain border and the instant frame are the same effect: which of the two it is
+        let instant = |d: &Decor| matches!(d, Decor::Border { bottom, .. } if *bottom > 0.0);
+        let edits = self.edits(id);
         let mut add = None;
+        let mut show = None;
         egui::Grid::new("decor_add").num_columns(2).spacing([6.0, 6.0]).show(ui, |ui| {
             for (i, (icon, label, d)) in adds.iter().enumerate() {
-                if tool_button(ui, icon, label).clicked() {
-                    add = Some(d.clone());
+                // the one the picture has: a click shows its settings instead of adding another
+                let has = match d {
+                    Decor::Text(_) => None,
+                    _ => crate::steps::slot_at(std::slice::from_ref(&EditOp::Decor(d.clone())), 0)
+                        .filter(|&slot| crate::steps::decor_of(&edits, slot).is_some_and(|cur| instant(&cur) == instant(d))),
+                };
+                let mut r = tool_button(ui, icon, label);
+                if has.is_some() {
+                    r = r.highlight();
+                }
+                if r.clicked() {
+                    match has {
+                        Some(slot) => show = Some(slot),
+                        None => add = Some(d.clone()),
+                    }
                 }
                 if i % 2 == 1 {
                     ui.end_row();
                 }
             }
         });
-        if let Some(d) = add {
-            // always a new step (adding two borders makes a double frame)
-            self.push_edit(id, EditOp::Decor(d));
+        if let Some(slot) = show {
+            self.edit.decor = Some(slot);
         }
-        let Some(mut d) = self.current_decor(id) else {
+        if let Some(d) = add {
+            // one vignette, border, shadow and rounding per picture (a new one takes the place of
+            // the old), any number of texts; each goes to its place in the order
+            let mut slot = None;
+            self.change_edits(id, "", |e| slot = Some(crate::steps::add_decor(e, d)));
+            self.edit.decor = slot;
+        }
+        // the texts, to choose the one to change
+        let texts: Vec<(Slot, String)> = self
+            .edits(id)
+            .iter()
+            .filter_map(|e| if let EditOp::Decor(d @ Decor::Text(_)) = e { Some(crate::labels::decor(d)) } else { None })
+            .enumerate()
+            .map(|(n, label)| (Slot::Text(n), label))
+            .collect();
+        if texts.len() > 1 {
+            ui.add_space(4.0);
+            for (slot, label) in texts {
+                if ui.add(egui::Button::selectable(self.edit.decor == Some(slot), RichText::new(label).size(12.0)).truncate()).clicked() {
+                    self.edit.decor = Some(slot);
+                }
+            }
+        }
+        let Some((slot, mut d)) = self.current_decor(id) else {
             ui.add_space(8.0);
             ui.label(RichText::new(tr!("edit-effects-note")).size(11.5).weak());
             return;
@@ -1057,11 +1139,12 @@ impl App {
             }
         }
         if d != before {
-            self.set_decor(id, d);
+            self.change_edits(id, "decor", |e| crate::steps::set_decor(e, slot, Some(d)));
         }
         ui.add_space(6.0);
         if ui.button(tr!("edit-remove-effect")).clicked() {
-            self.undo();
+            self.change_edits(id, "", |e| crate::steps::set_decor(e, slot, None));
+            self.edit.decor = None;
         }
     }
 

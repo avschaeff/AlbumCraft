@@ -697,6 +697,7 @@ effect-focal-bw = B/N focale
 effect-graduated-tint = Tinta sfumata
 op-rotate-right = Ruota a destra
 op-rotate-left = Ruota a sinistra
+op-rotate-half = Ruota di 180°
 op-crop = Ritaglia
 op-straighten = Raddrizza { $angle }°
 op-perspective-v = Prospettiva, verticale { $v }
@@ -799,7 +800,8 @@ edit-list = Modifiche di questa foto:
 edit-list-none = (nessuna: è l'originale)
 edit-step-hint =
     { $label }
-    Clicca per tornare a questo passaggio (quelli successivi vengono rimossi; Annulla li ripristina)
+    Fai clic per cambiarla
+edit-step-remove = Rimuovi questa modifica
 edit-copy-hint = Copia queste modifiche per incollarle su altre foto (Ctrl+Maiusc+C)
 edit-paste-n = Incolla { $n }
 edit-paste-hint = Aggiungi le modifiche copiate a questa foto (Ctrl+Maiusc+V)
@@ -879,7 +881,7 @@ edit-effects-add = Aggiungi sopra o intorno alla foto
 edit-add-instant = Cornice istantanea
 edit-add-text = Testo
 edit-your-text = Il tuo testo
-edit-effects-note = Gli effetti si applicano sopra tutte le altre modifiche. Aggiungine uno per regolarlo qui.
+edit-effects-note = Gli effetti si applicano sopra tutte le altre modifiche, sempre nello stesso ordine: vignettatura, angoli arrotondati, bordo, testo, ombra. Scegline uno per regolarlo qui.
 edit-p-amount = Intensità
 edit-p-size = Dimensione
 edit-p-width = Larghezza

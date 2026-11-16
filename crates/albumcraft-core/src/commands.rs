@@ -231,7 +231,10 @@ const EDIT_DOC: &str = "An edit step, as JSON. Forms: {\"Rotate\": n} (quarter t
 {\"Look\": {\"look\": name, \"amount\": 0-1}} with name one of vivid, soft_film, polaroid, cross_process, lomo, matte, teal_orange, high_key, cool, warm, black_white, dramatic_bw, sepia, soft_focus, glow, film_grain, focal_bw; \
 {\"Decor\": {\"kind\": \"vignette\", \"amount\": -1..1, \"size\": 0..1}} | {\"kind\": \"border\", \"width\": 0..0.5, \"bottom\": 0..0.5, \"color\": [r,g,b]} | \
 {\"kind\": \"shadow\", \"size\", \"opacity\", \"background\": [r,g,b]} | {\"kind\": \"rounded\", \"radius\", \"background\"} | \
-{\"kind\": \"text\", \"text\", \"anchor\": 0-8 (top-left..bottom-right), \"size\": fraction of height, \"color\": [r,g,b], \"halo\": bool}.";
+{\"kind\": \"text\", \"text\", \"anchor\": 0-8 (top-left..bottom-right), \"size\": fraction of height, \"color\": [r,g,b], \"halo\": bool}. \
+A picture's steps are kept in a fixed order whatever the order they are added in: turn, straighten, perspective, crop, adjustment, look, \
+then vignette, rounded corners, border, text, shadow. A picture has one of each (texts excepted): adding a step of a kind it has replaces that one \
+(an Adjust replaces the whole adjustment, a Rotate is added to the turn).";
 
 pub fn specs() -> Vec<Spec> {
     vec![
@@ -375,7 +378,7 @@ Call `rescan` afterwards to see the new pictures in the library.",
         },
         Spec {
             name: "copy_edits",
-            description: "Add the edit steps of picture `from` (red-eye fixes excepted) after the edits of each of `keys`.",
+            description: "Put the edit steps of picture `from` (red-eye fixes excepted) on each of `keys`: a step of a kind the picture has (adjustment, look, crop, border…) replaces that one.",
             schema: || keys_schema(json!({ "from": { "type": "string" } })),
         },
         Spec {
@@ -1318,7 +1321,7 @@ pub fn run(host: &mut dyn Host, name: &str, args: &Value) -> Result<Outcome, Str
             let op = parse_edit(args.get("edit").ok_or("`edit` is required")?)?;
             for &id in &ids {
                 if let Some(m) = meta_mut(host, id) {
-                    m.edits.push(op.clone());
+                    crate::steps::put(&mut m.edits, op.clone());
                 }
                 host.changed(id);
             }
@@ -1338,33 +1341,28 @@ pub fn run(host: &mut dyn Host, name: &str, args: &Value) -> Result<Outcome, Str
                     Some(EditOp::AutoContrast)
                 } else {
                     let base = imaging::load_source(&key, library::BIG_DIM).ok_or_else(|| format!("{key}: the picture can't be read"))?;
-                    // look at the picture before its last adjustment step, which the fix replaces
-                    let last_adjust = match edits.last() {
-                        Some(EditOp::Adjust(a)) => Some(*a),
-                        _ => None,
-                    };
-                    let before: Vec<EditOp> = if last_adjust.is_some() { edits[..edits.len() - 1].to_vec() } else { edits.clone() };
+                    // look at the picture without its adjustment, which the fix changes
+                    let mut before = edits.clone();
+                    crate::steps::set_adjust(&mut before, develop::Adjust::default());
                     let img = imaging::apply_all(&base, &before);
-                    let mut a = last_adjust.unwrap_or_default();
+                    let mut a = crate::steps::adjust_of(&edits);
                     match fix.as_str() {
                         "lucky" => a = develop::Adjust { clarity: a.clarity, sharpen: a.sharpen, noise: a.noise, ..develop::lucky(&img) },
                         "exposure" => a.exposure = develop::auto_exposure(&img),
                         "white_balance" => (a.temp, a.tint) = develop::auto_white_balance(&img),
                         _ => {
-                            let full = imaging::apply_all(&base, &edits);
-                            let angle = develop::auto_straighten(&full).filter(|a| a.abs() >= 0.2);
+                            // added to the angle the picture is straightened by already
+                            let angle = develop::auto_straighten(&img).filter(|a| a.abs() >= 0.2).map(|a| (a * 10.0).round() / 10.0);
                             results.push(json!({ "key": key, "straighten": angle }));
                             if let (Some(angle), Some(m)) = (angle, meta_mut(host, id)) {
-                                m.edits.push(EditOp::Straighten((angle * 10.0).round() / 10.0));
+                                let total = (crate::steps::geometry_of(&m.edits).0 + angle).clamp(-45.0, 45.0);
+                                crate::steps::set_geometry(&mut m.edits, EditOp::Straighten(total));
                             }
                             host.changed(id);
                             continue;
                         }
                     }
-                    if last_adjust.is_some() {
-                        edits.pop();
-                    }
-                    edits.push(EditOp::Adjust(a.clamped()));
+                    crate::steps::set_adjust(&mut edits, a);
                     if let Some(m) = meta_mut(host, id) {
                         m.edits = edits;
                     }
@@ -1374,7 +1372,7 @@ pub fn run(host: &mut dyn Host, name: &str, args: &Value) -> Result<Outcome, Str
                 };
                 if let Some(op) = op {
                     if let Some(m) = meta_mut(host, id) {
-                        m.edits.push(op);
+                        crate::steps::put(&mut m.edits, op);
                     }
                     host.changed(id);
                     results.push(json!({ "key": key, "edit": "Auto Contrast" }));
@@ -1406,7 +1404,7 @@ pub fn run(host: &mut dyn Host, name: &str, args: &Value) -> Result<Outcome, Str
             let ids = ids(host, args)?;
             for &id in &ids {
                 if let Some(m) = meta_mut(host, id) {
-                    m.edits.extend(ops.iter().cloned());
+                    crate::steps::merge(&mut m.edits, &ops);
                 }
                 host.changed(id);
             }

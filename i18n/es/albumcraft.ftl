@@ -697,6 +697,7 @@ effect-focal-bw = B/N focal
 effect-graduated-tint = Tinte degradado
 op-rotate-right = Girar a la derecha
 op-rotate-left = Girar a la izquierda
+op-rotate-half = Girar 180°
 op-crop = Recortar
 op-straighten = Enderezar { $angle }°
 op-perspective-v = Perspectiva, vertical { $v }
@@ -799,7 +800,8 @@ edit-list = Retoques de esta foto:
 edit-list-none = (ninguno: es el original)
 edit-step-hint =
     { $label }
-    Haga clic para volver a este paso (se quitan los siguientes; Deshacer los recupera)
+    Haga clic para cambiarlo
+edit-step-remove = Quitar este retoque
 edit-copy-hint = Copiar estos retoques para pegarlos en otras fotos (Ctrl+Mayús+C)
 edit-paste-n = Pegar { $n }
 edit-paste-hint = Añadir los retoques copiados a esta foto (Ctrl+Mayús+V)
@@ -879,7 +881,7 @@ edit-effects-add = Añadir sobre la foto o a su alrededor
 edit-add-instant = Marco de instantánea
 edit-add-text = Texto
 edit-your-text = Su texto
-edit-effects-note = Los efectos se aplican encima de todos los demás retoques. Añada uno para ajustarlo aquí.
+edit-effects-note = Los efectos se aplican encima de todos los demás retoques, siempre en el mismo orden: viñeteado, esquinas redondeadas, borde, texto, sombra. Elija uno para ajustarlo aquí.
 edit-p-amount = Intensidad
 edit-p-size = Tamaño
 edit-p-width = Anchura

@@ -702,6 +702,7 @@ effect-focal-bw = Focal B & W
 effect-graduated-tint = Graduated Tint
 op-rotate-right = Rotate right
 op-rotate-left = Rotate left
+op-rotate-half = Rotate 180°
 op-crop = Crop
 op-straighten = Straighten { $angle }°
 op-perspective-v = Perspective, vertical { $v }
@@ -804,7 +805,8 @@ edit-list = Edits on this picture:
 edit-list-none = (none — this is the original)
 edit-step-hint =
     { $label }
-    Click to go back to this step (the later ones are removed; Undo brings them back)
+    Click to change it
+edit-step-remove = Remove this step
 edit-copy-hint = Copy these edits to paste them on other pictures (Ctrl+Shift+C)
 edit-paste-n = Paste { $n }
 edit-paste-hint = Add the copied edits to this picture (Ctrl+Shift+V)
@@ -884,7 +886,7 @@ edit-effects-add = Add on or around the picture
 edit-add-instant = Instant frame
 edit-add-text = Text
 edit-your-text = Your text
-edit-effects-note = Effects go on top of every other edit. Add one to adjust it here.
+edit-effects-note = Effects go on top of every other edit, always in the same order: vignette, rounded corners, border, text, shadow. Choose one to adjust it here.
 edit-p-amount = Amount
 edit-p-size = Size
 edit-p-width = Width
