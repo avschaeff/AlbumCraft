@@ -35,6 +35,7 @@ impl App {
             Dialog::PrintReview { .. } => tr!("dialog-print-review"),
             Dialog::Trash { .. } | Dialog::TrashFolder { .. } => tr!("dialog-trash"),
             Dialog::DeleteForever { .. } => tr!("dialog-delete-forever"),
+            Dialog::LibraryThere { .. } => tr!("dialog-library-there"),
             Dialog::Settings { .. } => tr!("settings-title"),
         };
         let targets = self.targets();
@@ -389,6 +390,22 @@ impl App {
                         if ui.button(tr!("online-maps-builtin")).clicked() {
                             self.store.online_maps = Some(false);
                             self.dirty = true;
+                            close = true;
+                        }
+                    });
+                }
+                Dialog::LibraryThere { folder, path } => {
+                    ui.label(tr!("library-there-text", path = path.as_str()));
+                    ui.add_space(4.0);
+                    ui.label(egui::RichText::new(tr!("library-there-current", path = crate::library::store_path().map(|p| p.display().to_string()).unwrap_or_default())).size(12.0).weak());
+                    ui.add_space(8.0);
+                    ui.horizontal(|ui| {
+                        if ui.add(egui::Button::new(egui::RichText::new(tr!("library-there-open")).color(Color32::WHITE).strong()).fill(t().accent)).clicked() {
+                            let folder = folder.take();
+                            self.open_library_in(ui.ctx(), folder);
+                            close = true;
+                        }
+                        if ui.button(tr!("button-cancel")).clicked() {
                             close = true;
                         }
                     });

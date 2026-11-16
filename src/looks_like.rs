@@ -80,7 +80,7 @@ impl App {
     pub fn smart_search_tick(&mut self, ctx: &egui::Context, now: f64) {
         if self.smart.checked_at.is_none_or(|at| now - at >= PACK_CHECK) {
             self.smart.checked_at = Some(now);
-            let pack = if crate::ai::runtime::available() { smart_search::active(&self.store.search_pack, &crate::i18n::current_language()).map(|p| p.id.clone()) } else { None };
+            let pack = if crate::ai::runtime::available() { smart_search::active(&self.store.search_pack).map(|p| p.id.clone()) } else { None };
             if self.smart.told.as_ref() != Some(&pack) {
                 self.lib.use_search_pack(pack.clone());
                 self.smart.told = Some(pack.clone());

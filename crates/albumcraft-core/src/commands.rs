@@ -1171,7 +1171,7 @@ pub fn run(host: &mut dyn Host, name: &str, args: &Value) -> Result<Outcome, Str
                 .map(|p| json!({ "id": p.pack.id, "title": p.pack.title, "about": p.pack.about, "licence": p.pack.licence, "version": p.pack.version, "bytes": p.pack.bytes(), "installed": p.installed }))
                 .collect();
             let analysis = host.analysis().map(|a| json!({ "analysed": a.done, "to_analyse": a.total, "running": a.active() && !a.paused }));
-            let search = crate::smart_search::active(&host.store().search_pack, &host.store().language).map(|p| p.id.clone());
+            let search = crate::smart_search::active(&host.store().search_pack).map(|p| p.id.clone());
             now(json!({ "can_run_networks": crate::ai::runtime::available(), "packs": packs, "analysis_paused": host.store().analysis_paused, "analysis": analysis, "search_pack": search }))
         }
         "download_model_pack" => {
@@ -1192,7 +1192,7 @@ pub fn run(host: &mut dyn Host, name: &str, args: &Value) -> Result<Outcome, Str
         "propose_tags" => {
             let ids = ids(host, args)?;
             let store = host.store();
-            let pack = crate::smart_search::active(&store.search_pack, &store.language)
+            let pack = crate::smart_search::active(&store.search_pack)
                 .ok_or("tag proposals need a search pack: none is downloaded (see ai_status and download_model_pack)")?;
             let set = |_: &str, m: &library::Meta| crate::geo::effective(m.place.as_ref(), None);
             let photos = host.photos();
@@ -1221,7 +1221,7 @@ pub fn run(host: &mut dyn Host, name: &str, args: &Value) -> Result<Outcome, Str
             };
             let limit = opt_u64(args, "limit")?.map(|n| n.clamp(1, crate::smart_search::MAX_HITS as u64) as usize);
             let store = host.store();
-            let pack = crate::smart_search::active(&store.search_pack, &store.language)
+            let pack = crate::smart_search::active(&store.search_pack)
                 .ok_or("smart search needs a search pack: none is downloaded (see ai_status and download_model_pack)")?;
             let files: Vec<crate::geo::FileStamp> = host.photos().iter().filter(|p| !p.is_sample()).map(|p| (p.key.clone(), p.modified, p.bytes)).collect();
             let files = std::sync::Arc::new(files);

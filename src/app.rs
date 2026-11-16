@@ -258,6 +258,8 @@ pub enum Dialog {
     PrintReview { grades: Vec<(usize, String, f32, u8)>, before_print: bool },
     /// Asked once: may maps and place search use the internet?
     OnlineMaps,
+    /// The chosen folder for the library holds one already (`path`): open it instead?
+    LibraryThere { folder: Option<PathBuf>, path: String },
     /// The Settings dialog, showing this section (`settings_view`).
     Settings { section: crate::settings_view::SettingsSection },
 }

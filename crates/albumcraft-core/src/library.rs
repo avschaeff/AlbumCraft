@@ -259,7 +259,7 @@ pub struct Store {
     pub export_quality: u8,
     /// The user paused the background analysis of the library (AI features).
     pub analysis_paused: bool,
-    /// The search pack the user chose (a pack id); empty: the one for the interface's language.
+    /// The search pack the user chose (a pack id); empty: Multilingual (`smart_search::DEFAULT_PACK`).
     pub search_pack: String,
     /// Last used web gallery theme, layout, picture size and captions.
     #[serde(deserialize_with = "or_default")]
@@ -452,8 +452,131 @@ pub fn read_picasa_ini(dir: &Path) -> Option<IniFolder> {
     Some(out)
 }
 
+/// Where the library file is: `library.json` in the app's data folder, or `LIBRARY_FILE` in the
+/// folder the user chose (Settings › Storage, `library_folder`).
 pub fn store_path() -> Option<PathBuf> {
+    match library_folder() {
+        Some(dir) => Some(dir.join(LIBRARY_FILE)),
+        None => default_store_path(),
+    }
+}
+
+/// The library file's name in a folder the user chose (next to the pictures, it should say
+/// whose it is).
+pub const LIBRARY_FILE: &str = "albumcraft-library.json";
+
+/// The library file when the user has not chosen a folder for it.
+pub fn default_store_path() -> Option<PathBuf> {
     Some(dirs::data_dir()?.join("AlbumCraft").join("library.json"))
+}
+
+/// The small file, in the app's data folder, that says which folder holds the library.
+fn location_path() -> Option<PathBuf> {
+    Some(dirs::data_dir()?.join("AlbumCraft").join("library-location.json"))
+}
+
+#[derive(Serialize, Deserialize, Default)]
+struct Location {
+    #[serde(default)]
+    folder: String,
+}
+
+/// The folder the user chose for the library, or None: the app's data folder.
+pub fn library_folder() -> Option<PathBuf> {
+    let text = std::fs::read_to_string(location_path()?).ok()?;
+    let loc: Location = serde_json::from_str(&text).ok()?;
+    (!loc.folder.trim().is_empty()).then(|| PathBuf::from(loc.folder))
+}
+
+/// Remember `folder` as the library's (None: back to the app's data folder).
+fn set_library_folder(folder: Option<&Path>) -> Result<(), String> {
+    write_location(&location_path().ok_or("no folder for application data")?, folder)
+}
+
+fn write_location(path: &Path, folder: Option<&Path>) -> Result<(), String> {
+    match folder {
+        None => match std::fs::remove_file(path) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(format!("{}: {e}", path.display())),
+            _ => Ok(()),
+        },
+        Some(f) => {
+            let bytes = serde_json::to_vec_pretty(&Location { folder: f.to_string_lossy().into() }).map_err(|e| e.to_string())?;
+            write_library(path, &bytes)
+        }
+    }
+}
+
+/// What moving the library to another folder did.
+#[derive(Debug, PartialEq)]
+pub enum Relocated {
+    /// The library is saved there now, and the old file removed.
+    Moved(PathBuf),
+    /// That folder holds a library already (this path); nothing was changed.
+    Exists(PathBuf),
+}
+
+/// Save the library (`bytes`, a `Store::snapshot`) in `folder` (None: the app's data folder),
+/// make it the place it is saved from now on, and remove the file it was in. Never writes over
+/// a library that is there already: `Relocated::Exists` (see `open_library_in`).
+pub fn relocate_library(bytes: &[u8], folder: Option<&Path>) -> Result<Relocated, String> {
+    let old = store_path().ok_or("no folder for application data")?;
+    let new = match folder {
+        Some(f) => f.join(LIBRARY_FILE),
+        None => default_store_path().ok_or("no folder for application data")?,
+    };
+    relocate_between(bytes, &old, &new, folder, set_library_folder)
+}
+
+/// `relocate_library` from `old` to `new` (the library file in `folder`); `remember` writes
+/// where it is.
+fn relocate_between(bytes: &[u8], old: &Path, new: &Path, folder: Option<&Path>, remember: impl FnOnce(Option<&Path>) -> Result<(), String>) -> Result<Relocated, String> {
+    let (old, new) = (old.to_path_buf(), new.to_path_buf());
+    if same_file(&old, &new) {
+        return Ok(Relocated::Moved(new));
+    }
+    if new.exists() {
+        return Ok(Relocated::Exists(new));
+    }
+    if let Some(f) = folder
+        && !f.is_dir()
+    {
+        return Err(crate::msg!("library-not-a-folder", "{folder} is not a folder.", folder = f.display().to_string()).into());
+    }
+    write_library(&new, bytes)?;
+    if let Err(e) = remember(folder) {
+        let _ = std::fs::remove_file(&new);
+        return Err(e);
+    }
+    // the new file is in place and found from now on: the old one would only mislead
+    let _ = std::fs::remove_file(&old);
+    Ok(Relocated::Moved(new))
+}
+
+/// Use the library already saved in `folder` (None: the app's data folder, where a new one is
+/// started if there is none) from now on, and give it back. The library in use stays where it
+/// was, untouched.
+pub fn open_library_in(folder: Option<&Path>) -> Result<Store, String> {
+    let path = match folder {
+        Some(f) => f.join(LIBRARY_FILE),
+        None => default_store_path().ok_or("no folder for application data")?,
+    };
+    let store = match Store::load_from(&path) {
+        Loaded::Store(s) => *s,
+        // the app's data folder without a library yet: start a new one there
+        Loaded::Fresh if folder.is_none() => Store::default(),
+        Loaded::Fresh => return Err(crate::msg!("library-none-there", "There is no library in {path}.", path = path.display().to_string()).into()),
+        Loaded::Unreadable { error, backup } => {
+            // load_from may have moved a damaged file aside: then there is nothing to open
+            let kept = backup.map(|b| format!(" (kept as {})", b.display())).unwrap_or_default();
+            return Err(format!("{}: {error}{kept}", path.display()));
+        }
+    };
+    set_library_folder(folder)?;
+    Ok(store)
+}
+
+fn same_file(a: &Path, b: &Path) -> bool {
+    a == b || matches!((a.parent().and_then(|p| p.canonicalize().ok()), b.parent().and_then(|p| p.canonicalize().ok())), (Some(x), Some(y)) if x == y && a.file_name() == b.file_name())
 }
 
 /// The library saved under the app's earlier working name, PhotoShelf.
@@ -487,7 +610,15 @@ pub enum Loaded {
 impl Store {
     pub fn load() -> Loaded {
         let Some(path) = store_path() else { return Loaded::Fresh };
-        migrate_old_store(&path);
+        if let Some(dir) = library_folder() {
+            // a folder the user chose that can't be reached now (a disk not plugged in): never
+            // start a new library in its place
+            if !dir.is_dir() {
+                return Loaded::Unreadable { error: crate::msg!("library-folder-unreachable", "the folder of the library, {folder}, can't be reached", folder = dir.display().to_string()).into(), backup: None };
+            }
+        } else {
+            migrate_old_store(&path);
+        }
         Self::load_from(&path)
     }
 
@@ -1700,5 +1831,37 @@ mod background_queue_tests {
         }
         assert_eq!(q.forget_old_thumbs(10).len(), 34);
         assert_eq!(q.background.len(), 1);
+    }
+}
+
+#[cfg(test)]
+mod location_tests {
+    use super::*;
+
+    #[test]
+    fn the_library_moves_but_never_over_another() {
+        let dir = std::env::temp_dir().join(format!("albumcraft-relocate-{}", std::process::id()));
+        let (a, b) = (dir.join("a"), dir.join("b"));
+        std::fs::create_dir_all(&a).unwrap();
+        std::fs::create_dir_all(&b).unwrap();
+        let loc = dir.join("location.json");
+        let old = a.join("library.json");
+        std::fs::write(&old, b"{}").unwrap();
+        let new = b.join(LIBRARY_FILE);
+        let remember = |f: Option<&Path>| write_location(&loc, f);
+        assert_eq!(relocate_between(br#"{"x":1}"#, &old, &new, Some(&b), remember), Ok(Relocated::Moved(new.clone())));
+        assert!(!old.exists(), "the old file is removed");
+        assert_eq!(std::fs::read(&new).unwrap(), br#"{"x":1}"#);
+        assert!(std::fs::read_to_string(&loc).unwrap().contains(&*b.to_string_lossy()));
+        // a library there already is left alone
+        std::fs::write(&old, b"{}").unwrap();
+        let remember = |f: Option<&Path>| write_location(&loc, f);
+        assert_eq!(relocate_between(b"{}", &old, &new, Some(&b), remember), Ok(Relocated::Exists(new.clone())));
+        assert_eq!(std::fs::read(&new).unwrap(), br#"{"x":1}"#);
+        assert!(old.exists());
+        // back to the default: the location file goes
+        write_location(&loc, None).unwrap();
+        assert!(!loc.exists());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

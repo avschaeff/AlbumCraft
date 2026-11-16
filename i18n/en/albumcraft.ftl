@@ -207,6 +207,23 @@ settings-maps-tiles-after = Map tiles are downloaded again when needed.
 
 settings-notes = Your notes
 settings-notes-note = Ratings, captions, tags, edits and albums are kept in one file; your picture files are never changed.
+settings-library-change = Change folder…
+settings-library-change-hint = Keep the library file in another folder, for example next to your pictures
+settings-library-default = Back to the default folder
+settings-library-default-hint = Keep the library file in AlbumCraft's own folder again
+settings-library-note = In a folder you choose, the file is called albumcraft-library.json. If that folder already holds one, AlbumCraft offers to open it.
+settings-library-moved = The library is now saved in { $path }
+settings-library-move-failed = The library could not be moved: { $error }
+settings-library-open-failed = That library could not be opened: { $error }
+settings-library-opened = Opened the library in { $path }
+dialog-library-there = A library is there already
+library-there-text =
+    That folder already holds an AlbumCraft library:
+    { $path }
+
+    Open it instead of the current one?
+library-there-current = The current library stays as it is, in { $path }.
+library-there-open = Open that library
 settings-thumbs = Thumbnails
 settings-thumbs-after = Thumbnails are made again from the pictures when needed (slower for a while).
 cache-on-disk = { $size } on disk
@@ -227,14 +244,13 @@ settings-ai-networks = Networks
 # $size is like "12.5 MB"
 settings-ai-pack-size = { $size }  ·  licence: { $licence }
 settings-ai-remove = Remove
+settings-ai-other-kept = { $pack } is still on this computer ({ $size })
 settings-ai-remove-hint = Remove the networks from this computer. What was found in your pictures is kept.
 settings-ai-downloaded = Downloaded
 settings-ai-downloading = Downloading… (see the bar at the bottom)
 settings-ai-download = Download
 settings-ai-remove-failed = The networks could not be removed: { $error }
 settings-ai-search-uses = Smart search uses
-settings-ai-search-auto = The pack for the interface's language
-settings-ai-search-auto-hint = The multilingual pack when the interface is not in English, else the English one
 settings-ai-download-task = Downloading { $pack }
 settings-ai-analysis = Analysis of the library
 settings-ai-analysis-text = Each picture is analysed once, in the background, while AlbumCraft has nothing else to do. It stops when AlbumCraft closes and carries on at the next start.
@@ -1388,6 +1404,9 @@ root-inside = That folder is already in the library, as part of { $outer }.
 root-excluded = That folder is inside { $folder }, which is left out of the library.
 exclude-is-root = That is a library folder: remove it instead.
 exclude-outside = That folder is not inside a library folder.
+library-folder-unreachable = the folder of the library, { $folder }, can't be reached
+library-not-a-folder = { $folder } is not a folder.
+library-none-there = There is no library in { $path }.
 exclude-already = That folder is already left out.
 name-empty = Type a name.
 name-bad-char = A name can't contain { $char }.
