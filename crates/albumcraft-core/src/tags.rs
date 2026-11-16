@@ -25,7 +25,8 @@ pub struct Node {
 }
 
 /// Every tag in the library with how many pictures have it, by `key`: (spelling, count).
-/// Tags only named in the hierarchy (a group with no pictures of its own) count 0.
+/// Tags only named in the hierarchy (a group with no pictures of its own) count 0. When pictures
+/// spell a tag differently, the first spelling in sort order is the one kept.
 pub fn counts(store: &Store) -> HashMap<String, (String, usize)> {
     let mut out: HashMap<String, (String, usize)> = HashMap::new();
     for m in store.meta.values() {
@@ -36,7 +37,13 @@ pub fn counts(store: &Store) -> HashMap<String, (String, usize)> {
             if k.is_empty() || !seen.insert(k.clone()) {
                 continue;
             }
-            out.entry(k).or_insert_with(|| (t.trim().to_string(), 0)).1 += 1;
+            // the same spelling every time when pictures differ in case ("Church" before "church"),
+            // whatever order the pictures come in
+            let e = out.entry(k).or_insert_with(|| (t.trim().to_string(), 0));
+            if t.trim() < e.0.as_str() {
+                e.0 = t.trim().to_string();
+            }
+            e.1 += 1;
         }
     }
     for (child, parent) in &store.tag_parents {
