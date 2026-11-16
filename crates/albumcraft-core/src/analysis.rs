@@ -544,16 +544,18 @@ mod tests {
         sizes.fail.store(true, Ordering::SeqCst);
         let table = s.analysis.add(sizes.clone()).unwrap();
         s.analysis.set_pictures(files);
-        let mut reported = false;
         loop {
-            match s.rx.recv_timeout(Duration::from_secs(30)).expect("an answer") {
-                Done::Report(r) => {
-                    assert!(!r.ok && r.text.contains("the network is broken"));
-                    reported = true;
-                }
-                Done::Analysis(p) if !p.active() && reported => break,
-                _ => {}
+            if let Done::Report(r) = s.rx.recv_timeout(Duration::from_secs(30)).expect("a report") {
+                assert!(!r.ok && r.text.contains("the network is broken"));
+                break;
             }
+        }
+        // the report and the progress messages come from different workers in any order, so
+        // ask the analysis itself whether the jobs still in the pool have ended
+        let until = std::time::Instant::now() + Duration::from_secs(30);
+        while s.analysis.progress().active() {
+            assert!(std::time::Instant::now() < until, "the analysis ends");
+            std::thread::sleep(Duration::from_millis(10));
         }
         assert!(sizes.seen.load(Ordering::SeqCst) < 30, "it does not go through the whole library failing");
         assert_eq!(table.read().unwrap().pictures(), 0, "a failure is not kept as a result");
