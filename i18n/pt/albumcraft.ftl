@@ -205,6 +205,23 @@ settings-maps-tiles-after = Os blocos de mapa são baixados novamente quando nec
 
 settings-notes = Suas anotações
 settings-notes-note = Anotações, legendas, tags, edições e álbuns ficam em um único arquivo; os seus arquivos de fotos nunca são alterados.
+settings-library-change = Mudar de pasta…
+settings-library-change-hint = Guardar o arquivo da biblioteca em outra pasta, por exemplo ao lado das suas fotos
+settings-library-default = Voltar à pasta padrão
+settings-library-default-hint = Guardar de novo o arquivo da biblioteca na pasta do AlbumCraft
+settings-library-note = Numa pasta que você escolher, o arquivo se chama albumcraft-library.json. Se a pasta já tiver um, o AlbumCraft oferece abri-lo.
+settings-library-moved = A biblioteca agora é salva em { $path }
+settings-library-move-failed = Não foi possível mover a biblioteca: { $error }
+settings-library-open-failed = Não foi possível abrir essa biblioteca: { $error }
+settings-library-opened = Biblioteca aberta de { $path }
+dialog-library-there = Já existe uma biblioteca aí
+library-there-text =
+    Essa pasta já contém uma biblioteca do AlbumCraft:
+    { $path }
+
+    Abri-la no lugar da atual?
+library-there-current = A biblioteca atual fica como está, em { $path }.
+library-there-open = Abrir essa biblioteca
 settings-thumbs = Miniaturas
 settings-thumbs-after = As miniaturas são refeitas a partir das fotos quando necessário (mais lento por um tempo).
 cache-on-disk = { $size } no disco
@@ -224,14 +241,16 @@ settings-ai-library-missing = O arquivo { $file } que acompanha o AlbumCraft nã
 settings-ai-networks = Redes
 settings-ai-pack-size = { $size }  ·  licença: { $licence }
 settings-ai-remove = Remover
+settings-ai-enable = Usar os recursos de IA
+settings-ai-enable-hint = Análise da biblioteca em segundo plano, busca inteligente, Mais fotos parecidas e tags sugeridas
+settings-ai-off-note = Os recursos de IA estão desativados: nenhuma rede é carregada ou executada e a biblioteca não é analisada. As redes baixadas e o que já foi encontrado ficam neste computador.
+settings-ai-other-kept = { $pack } ainda está neste computador ({ $size })
 settings-ai-remove-hint = Remover as redes deste computador. O que foi encontrado nas suas fotos é mantido.
 settings-ai-downloaded = Baixado
 settings-ai-downloading = Baixando… (veja a barra embaixo)
 settings-ai-download = Baixar
 settings-ai-remove-failed = Não foi possível remover as redes: { $error }
 settings-ai-search-uses = A busca inteligente usa
-settings-ai-search-auto = O pacote para o idioma da interface
-settings-ai-search-auto-hint = O pacote multilíngue quando a interface não está em inglês; senão, o inglês
 settings-ai-download-task = Baixando { $pack }
 settings-ai-analysis = Análise da biblioteca
 settings-ai-analysis-text = Cada foto é analisada uma vez, em segundo plano, quando o AlbumCraft não tem mais nada a fazer. Para quando o AlbumCraft fecha e continua na próxima vez que ele abrir.
@@ -1382,6 +1401,9 @@ root-inside = Esta pasta já está na biblioteca, dentro de { $outer }.
 root-excluded = That folder is inside { $folder }, which is left out of the library.
 exclude-is-root = That is a library folder: remove it instead.
 exclude-outside = That folder is not inside a library folder.
+library-folder-unreachable = a pasta da biblioteca, { $folder }, não está acessível
+library-not-a-folder = { $folder } não é uma pasta.
+library-none-there = Não há nenhuma biblioteca em { $path }.
 exclude-already = That folder is already left out.
 name-empty = Digite um nome.
 name-bad-char = Um nome não pode conter { $char }.

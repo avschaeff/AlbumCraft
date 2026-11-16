@@ -675,6 +675,11 @@ fn ids(host: &dyn Host, args: &Value) -> Result<Vec<usize>, String> {
     keys.iter().map(|k| host.find(k).ok_or_else(|| format!("no picture with key {k:?} in the library"))).collect()
 }
 
+/// The AI features are on, or the error an agent gets.
+fn ai_on(host: &dyn Host) -> Result<(), String> {
+    if host.store().ai_enabled { Ok(()) } else { Err("the AI features are turned off (Settings › AI features); the user can turn them on".into()) }
+}
+
 fn one(host: &dyn Host, key: &str) -> Result<usize, String> {
     host.find(key).ok_or_else(|| format!("no picture with key {key:?} in the library"))
 }
@@ -1171,8 +1176,8 @@ pub fn run(host: &mut dyn Host, name: &str, args: &Value) -> Result<Outcome, Str
                 .map(|p| json!({ "id": p.pack.id, "title": p.pack.title, "about": p.pack.about, "licence": p.pack.licence, "version": p.pack.version, "bytes": p.pack.bytes(), "installed": p.installed }))
                 .collect();
             let analysis = host.analysis().map(|a| json!({ "analysed": a.done, "to_analyse": a.total, "running": a.active() && !a.paused }));
-            let search = crate::smart_search::active(&host.store().search_pack, &host.store().language).map(|p| p.id.clone());
-            now(json!({ "can_run_networks": crate::ai::runtime::available(), "packs": packs, "analysis_paused": host.store().analysis_paused, "analysis": analysis, "search_pack": search }))
+            let search = crate::smart_search::active(&host.store().search_pack).map(|p| p.id.clone());
+            now(json!({ "enabled": host.store().ai_enabled, "can_run_networks": crate::ai::runtime::available(), "packs": packs, "analysis_paused": host.store().analysis_paused, "analysis": analysis, "search_pack": search }))
         }
         "download_model_pack" => {
             let id = str_arg(args, "pack")?.to_string();
@@ -1190,9 +1195,10 @@ pub fn run(host: &mut dyn Host, name: &str, args: &Value) -> Result<Outcome, Str
             now(json!({ "removed": id }))
         }
         "propose_tags" => {
+            ai_on(host)?;
             let ids = ids(host, args)?;
             let store = host.store();
-            let pack = crate::smart_search::active(&store.search_pack, &store.language)
+            let pack = crate::smart_search::active(&store.search_pack)
                 .ok_or("tag proposals need a search pack: none is downloaded (see ai_status and download_model_pack)")?;
             let set = |_: &str, m: &library::Meta| crate::geo::effective(m.place.as_ref(), None);
             let photos = host.photos();
@@ -1208,6 +1214,7 @@ pub fn run(host: &mut dyn Host, name: &str, args: &Value) -> Result<Outcome, Str
             })))
         }
         "semantic_search" | "similar_pictures" => {
+            ai_on(host)?;
             let query = if name == "semantic_search" {
                 let text = str_arg(args, "text")?.trim();
                 if text.is_empty() {
@@ -1221,7 +1228,7 @@ pub fn run(host: &mut dyn Host, name: &str, args: &Value) -> Result<Outcome, Str
             };
             let limit = opt_u64(args, "limit")?.map(|n| n.clamp(1, crate::smart_search::MAX_HITS as u64) as usize);
             let store = host.store();
-            let pack = crate::smart_search::active(&store.search_pack, &store.language)
+            let pack = crate::smart_search::active(&store.search_pack)
                 .ok_or("smart search needs a search pack: none is downloaded (see ai_status and download_model_pack)")?;
             let files: Vec<crate::geo::FileStamp> = host.photos().iter().filter(|p| !p.is_sample()).map(|p| (p.key.clone(), p.modified, p.bytes)).collect();
             let files = std::sync::Arc::new(files);
@@ -2060,6 +2067,11 @@ mod tests {
         assert!(status["analysis"].is_null() && status["analysis_paused"] == false);
         assert!(run(&mut h, "pause_analysis", &json!({ "paused": true })).is_ok());
         assert!(h.store.analysis_paused);
+        // turned off in Settings: searches are refused with a reason, not run
+        assert_eq!(status["enabled"], true);
+        h.store.ai_enabled = false;
+        let Err(e) = run(&mut h, "semantic_search", &json!({ "text": "a dog" })) else { panic!("refused while off") };
+        assert!(e.contains("turned off"), "{e}");
         let _ = std::fs::remove_dir_all(dir);
     }
 

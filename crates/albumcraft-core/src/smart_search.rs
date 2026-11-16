@@ -6,8 +6,8 @@
 //! with its text encoder and ranks every picture by one dot product. No index is needed: 50 000
 //! pictures are ranked in a few milliseconds.
 //!
-//! One search pack is active at a time (the user's choice, `Store.search_pack`, else Light, or
-//! Multilingual when the interface is not in English). Vectors of two networks can't be
+//! One search pack is active at a time (the user's choice, `Store.search_pack`, else
+//! Multilingual, `DEFAULT_PACK`). Vectors of two networks can't be
 //! compared: after a switch the library is analysed again in the background, and searches keep
 //! using the other pack's vectors until the new ones cover as many pictures.
 //!
@@ -51,21 +51,23 @@ fn installed(pack: &Pack) -> bool {
     models::models_dir().is_some_and(|d| pack.installed(&d))
 }
 
-/// The search pack searches use: `choice` (a pack id) if it is on this computer; else the
-/// multilingual one when the interface's `language` is not English, else the English one,
-/// else any. None: no search pack is downloaded.
-pub fn active(choice: &str, language: &str) -> Option<&'static Pack> {
+/// The search pack used when the user has not picked one (`Store.search_pack` empty).
+pub const DEFAULT_PACK: &str = "search-multilingual";
+
+/// The search pack the user picked (`choice`, a pack id; empty or unknown: `DEFAULT_PACK`),
+/// whether it is on this computer or not. None only when this version knows no search pack.
+pub fn chosen(choice: &str) -> Option<&'static Pack> {
+    let packs = search_packs();
+    packs.iter().find(|p| p.id == choice).or_else(|| packs.iter().find(|p| p.id == DEFAULT_PACK)).or(packs.first()).copied()
+}
+
+/// The search pack searches use: the chosen one (`chosen`) if it is on this computer, else
+/// any downloaded one (the chosen one may still be downloading). None: no search pack is
+/// downloaded.
+pub fn active(choice: &str) -> Option<&'static Pack> {
     let packs: Vec<&'static Pack> = search_packs().into_iter().filter(|p| installed(p)).collect();
-    if let Some(p) = packs.iter().find(|p| p.id == choice) {
-        return Some(p);
-    }
-    let english = language.is_empty() || language.starts_with("en");
-    let multilingual = |p: &&&Pack| p.search.as_ref().is_some_and(|c| c.multilingual);
-    if english {
-        packs.iter().find(|p| !multilingual(p)).or(packs.first()).copied()
-    } else {
-        packs.iter().find(multilingual).or(packs.first()).copied()
-    }
+    let want = chosen(choice).map(|p| p.id.as_str());
+    packs.iter().find(|p| Some(p.id.as_str()) == want).or(packs.first()).copied()
 }
 
 /// The vectors of the library's pictures in one block, in the order of the picture list they
@@ -346,7 +348,7 @@ pub(crate) mod tests {
         use crate::library::{Done, Pool};
         let photos = std::env::var("ALBUMCRAFT_SEARCH_PHOTOS").expect("ALBUMCRAFT_SEARCH_PHOTOS");
         let id = std::env::var("ALBUMCRAFT_SEARCH_PACK_ID").unwrap_or_else(|_| "search-light".into());
-        let pack = active(&id, "en").filter(|p| p.id == id).expect("the pack's files in XDG_DATA_HOME/AlbumCraft/models");
+        let pack = active(&id).filter(|p| p.id == id).expect("the pack's files in XDG_DATA_HOME/AlbumCraft/models");
         let files: Vec<FileStamp> = walk(Path::new(&photos));
         let dir = std::env::temp_dir().join(format!("albumcraft-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
@@ -414,11 +416,14 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn the_english_pack_unless_the_interface_is_not_english() {
+    fn multilingual_unless_another_is_chosen() {
+        assert_eq!(chosen("").map(|p| p.id.as_str()), Some(DEFAULT_PACK));
+        assert_eq!(chosen("unknown").map(|p| p.id.as_str()), Some(DEFAULT_PACK));
+        assert_eq!(chosen("search-light").map(|p| p.id.as_str()), Some("search-light"));
         // with no search pack on this computer, none is active, whatever the choice
         if search_packs().iter().all(|p| !installed(p)) {
-            assert!(active("", "fr").is_none());
-            assert!(active("search-light", "en").is_none());
+            assert!(active("").is_none());
+            assert!(active("search-light").is_none());
         }
     }
 }

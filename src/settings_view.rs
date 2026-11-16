@@ -381,9 +381,87 @@ impl App {
                 }
             });
         }
+        ui.add_space(4.0);
+        let custom = crate::library::library_folder().is_some();
+        ui.horizontal(|ui| {
+            // not while the library must not be saved (it could not be read, or a screenshot)
+            if ui.add_enabled(self.persist, egui::Button::new(format!("{} {}", icons::FOLDER, tr!("settings-library-change")))).on_hover_text(tr!("settings-library-change-hint")).clicked()
+                && let Some(dir) = rfd::FileDialog::new().set_title(tr!("choose-folder-dialog")).pick_folder()
+            {
+                self.relocate_library(Some(dir));
+            }
+            // also when the chosen folder can't be reached (then this library is not saved): the
+            // way back to the library in the app's data folder
+            if custom && ui.button(tr!("settings-library-default")).on_hover_text(tr!("settings-library-default-hint")).clicked() {
+                if self.persist {
+                    self.relocate_library(None);
+                } else {
+                    self.open_library_in(ui.ctx(), None);
+                }
+            }
+        });
+        note(ui, &tr!("settings-library-note"));
         group(ui, &tr!("settings-thumbs"));
         let thumbs = self.cache_sizes.map(|c| c.0);
         self.cache_row(ui, thumbs, Cache::Thumbs, &tr!("settings-thumbs-after"));
+    }
+
+    /// Save the library in `folder` from now on (None: the app's data folder). When a library is
+    /// there already, ask whether to open it instead (`Dialog::LibraryThere`).
+    fn relocate_library(&mut self, folder: Option<std::path::PathBuf>) {
+        match self.lib.relocate(&mut self.store, folder.clone()) {
+            Ok(crate::library::Relocated::Moved(path)) => {
+                self.dirty = false;
+                self.toast(tr!("settings-library-moved", path = path.display().to_string()));
+            }
+            Ok(crate::library::Relocated::Exists(path)) => {
+                self.dialog = Some(Dialog::LibraryThere { folder, path: path.display().to_string() });
+            }
+            Err(e) => self.error(tr!("settings-library-move-failed", error = e)),
+        }
+    }
+
+    /// Open the library saved in `folder` in place of this one (which stays where it is).
+    pub(crate) fn open_library_in(&mut self, ctx: &egui::Context, folder: Option<std::path::PathBuf>) {
+        // this library's latest changes first, where it is now
+        if self.dirty && self.persist {
+            self.lib.save(&mut self.store, true);
+            self.dirty = false;
+        }
+        let store = match self.lib.open_library_in(folder) {
+            Ok(s) => s,
+            Err(e) => {
+                self.error(tr!("settings-library-open-failed", error = e));
+                return;
+            }
+        };
+        self.store = store;
+        // the library could not be read at the start: this one can be saved
+        self.persist = self.shot.is_none();
+        if let Ok(v) = std::env::var("ALBUMCRAFT_THEME") {
+            self.store.theme = v;
+        }
+        i18n::set_language(&self.store.language);
+        crate::theme::set_fonts(ctx);
+        // nothing of the other library's choices may point into this one
+        self.view = View::Library;
+        self.source = Source::Library;
+        self.selection.clear();
+        self.anchor = None;
+        self.cursor = None;
+        self.before_click = None;
+        self.tray_set = None;
+        self.list_pick = None;
+        self.search.clear();
+        self.search_terms.clear();
+        self.search_index = None;
+        self.filter = Default::default();
+        self.notices.clear();
+        self.smart.recheck();
+        self.packs_at = f64::NEG_INFINITY;
+        self.list_rev += 1;
+        self.rescan();
+        self.toast(tr!("settings-library-opened", path = crate::library::store_path().map(|p| p.display().to_string()).unwrap_or_default()));
     }
 
     /// The size of a cache and a button to empty it.
@@ -412,7 +490,23 @@ impl App {
             };
             ui.label(RichText::new(why).color(t().bad));
         }
+        ui.add_space(6.0);
+        if ui.checkbox(&mut self.store.ai_enabled, RichText::new(tr!("settings-ai-enable")).strong()).on_hover_text(tr!("settings-ai-enable-hint")).changed() {
+            self.dirty = true;
+            // at once rather than at the next look (every 2 s)
+            self.smart.recheck();
+            if !self.store.ai_enabled {
+                self.analysis = Default::default();
+            }
+        }
+        if !self.store.ai_enabled {
+            note(ui, &tr!("settings-ai-off-note"));
+        }
+        let on = self.store.ai_enabled;
+        ui.add_enabled_ui(on, |ui| self.settings_ai_body(ui));
+    }
 
+    fn settings_ai_body(&mut self, ui: &mut egui::Ui) {
         group(ui, &tr!("settings-ai-networks"));
         let now = ui.input(|i| i.time);
         if now - self.packs_at > 1.0 {
@@ -436,7 +530,59 @@ impl App {
         }
         let downloading = |id: &str, tasks: &[RunningTask]| tasks.iter().any(|t| t.label == download_label(id));
         let (mut download, mut remove) = (None, None);
-        for p in &self.packs {
+        // smart search: one network, picked from the list (Multilingual unless another is chosen)
+        let search: Vec<&crate::analysis::PackState> = self.packs.iter().filter(|p| p.pack.search.is_some()).collect();
+        let chosen = crate::smart_search::chosen(&self.store.search_pack).map(|p| p.id.clone()).unwrap_or_default();
+        if let Some(p) = search.iter().find(|p| p.pack.id == chosen).or(search.first()).copied() {
+            let mut pick = p.pack.id.clone();
+            ui.horizontal(|ui| {
+                ui.label(tr!("settings-ai-search-uses"));
+                egui::ComboBox::from_id_salt("search_pack").selected_text(&p.pack.title).width(220.0).show_ui(ui, |ui| {
+                    for s in &search {
+                        ui.selectable_value(&mut pick, s.pack.id.clone(), &s.pack.title);
+                    }
+                });
+            });
+            if pick != p.pack.id {
+                self.store.search_pack = pick;
+                self.dirty = true;
+                self.smart.recheck();
+            }
+            let pack = &p.pack;
+            ui.add_space(4.0);
+            ui.horizontal(|ui| {
+                ui.label(RichText::new(tr!("settings-ai-pack-size", size = fmt_bytes(pack.bytes()), licence = pack.licence.as_str())).size(12.0).weak());
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if p.installed {
+                        if ui.button(tr!("settings-ai-remove")).on_hover_text(tr!("settings-ai-remove-hint")).clicked() {
+                            remove = Some(pack.id.clone());
+                        }
+                        ui.label(RichText::new(format!("{} {}", icons::CHECK, tr!("settings-ai-downloaded"))).size(12.0).color(t().good));
+                    } else if downloading(&pack.id, &self.tasks) {
+                        ui.spinner();
+                        ui.label(RichText::new(tr!("settings-ai-downloading")).size(12.0).weak());
+                    } else if ui.add_enabled(crate::ai::runtime::available(), egui::Button::new(tr!("settings-ai-download"))).clicked() {
+                        download = Some(pack.id.clone());
+                    }
+                });
+            });
+            if !pack.about.is_empty() {
+                note(ui, &pack.about);
+            }
+            // a network not chosen any more, still taking room on this computer
+            for o in search.iter().filter(|o| o.installed && o.pack.id != pack.id) {
+                ui.add_space(6.0);
+                ui.horizontal(|ui| {
+                    ui.label(RichText::new(tr!("settings-ai-other-kept", pack = o.pack.title.as_str(), size = fmt_bytes(o.pack.bytes()))).size(12.0).weak());
+                    if ui.small_button(tr!("settings-ai-remove")).on_hover_text(tr!("settings-ai-remove-hint")).clicked() {
+                        remove = Some(o.pack.id.clone());
+                    }
+                });
+            }
+            ui.add_space(6.0);
+        }
+        // other packs (none yet besides search; faces will come)
+        for p in self.packs.iter().filter(|p| p.pack.search.is_none()) {
             let pack = &p.pack;
             ui.horizontal(|ui| {
                 ui.label(RichText::new(&pack.title).strong());
@@ -468,21 +614,6 @@ impl App {
                 self.error(tr!("settings-ai-remove-failed", error = e.to_string()));
             }
             self.packs_at = f64::NEG_INFINITY;
-        }
-
-        // with more than one search pack on this computer, which one searches
-        let search: Vec<(String, String)> = self.packs.iter().filter(|p| p.installed && p.pack.search.is_some()).map(|p| (p.pack.id.clone(), p.pack.title.clone())).collect();
-        if search.len() > 1 {
-            group(ui, &tr!("settings-ai-search-uses"));
-            let choice = &mut self.store.search_pack;
-            let mut changed = ui.radio_value(choice, String::new(), tr!("settings-ai-search-auto")).on_hover_text(tr!("settings-ai-search-auto-hint")).changed();
-            for (id, title) in search {
-                changed |= ui.radio_value(choice, id, title).changed();
-            }
-            if changed {
-                self.dirty = true;
-                self.smart.recheck();
-            }
         }
 
         group(ui, &tr!("settings-ai-analysis"));

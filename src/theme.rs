@@ -160,6 +160,10 @@ pub fn apply(ctx: &egui::Context, mode: Mode, force: bool) {
     if ctx.options(|o| o.theme_preference) != pref {
         ctx.set_theme(pref);
     }
+    // "Same as system" when the system does not say: light (egui's own fallback is dark)
+    if ctx.options(|o| o.fallback_theme) != egui::Theme::Light {
+        ctx.options_mut(|o| o.fallback_theme = egui::Theme::Light);
+    }
     let dark = ctx.theme() == egui::Theme::Dark;
     if force || dark != IS_DARK.load(Ordering::Relaxed) {
         IS_DARK.store(dark, Ordering::Relaxed);

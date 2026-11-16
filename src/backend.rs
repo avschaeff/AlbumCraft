@@ -41,6 +41,11 @@ pub trait Library {
     /// Save the notes: in the background, or before returning when `now` (the window closes).
     /// The result is collected with `take_saved`.
     fn save(&mut self, store: &mut Store, now: bool);
+    /// Save the library in `folder` from now on (None: the app's data folder) and remove the
+    /// file it was in; a library there already is left alone (`Relocated::Exists`).
+    fn relocate(&mut self, store: &mut Store, folder: Option<PathBuf>) -> Result<library::Relocated, String>;
+    /// Use the library already saved in `folder` (None: the app's data folder) from now on.
+    fn open_library_in(&mut self, folder: Option<PathBuf>) -> Result<Store, String>;
     /// A save is still being written.
     fn saving(&self) -> bool;
     /// The result of the last save once it is finished (`wait`: wait for it).
@@ -194,6 +199,19 @@ impl LocalLibrary {
     }
 }
 
+impl LocalLibrary {
+    /// Wait for a save being written (it would write to the old place), keeping its result for
+    /// `take_saved`.
+    fn finish_saving(&mut self) {
+        if let Some(h) = self.saving.take() {
+            let r = h.join().unwrap_or_else(|_| Err("the save stopped unexpectedly".into()));
+            if self.saved.is_none() || r.is_err() {
+                self.saved = Some(r);
+            }
+        }
+    }
+}
+
 impl Library for LocalLibrary {
     fn load(&mut self) -> Loaded {
         Store::load()
@@ -208,6 +226,16 @@ impl Library for LocalLibrary {
             Ok((path, bytes)) => self.saving = Some(std::thread::spawn(move || library::write_library(&path, &bytes))),
             Err(e) => self.saved = Some(Err(e)),
         }
+    }
+
+    fn relocate(&mut self, store: &mut Store, folder: Option<PathBuf>) -> Result<library::Relocated, String> {
+        self.finish_saving();
+        library::relocate_library(&store.snapshot()?, folder.as_deref())
+    }
+
+    fn open_library_in(&mut self, folder: Option<PathBuf>) -> Result<Store, String> {
+        self.finish_saving();
+        library::open_library_in(folder.as_deref())
     }
 
     fn saving(&self) -> bool {

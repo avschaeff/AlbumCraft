@@ -375,12 +375,19 @@ impl App {
                 files: vec![ModelFile { name: format!("{id}.onnx"), size, sha256: "0".repeat(64) }],
                 search: None,
             };
+            // the search packs as built in (their search section makes them a choice of one)
+            let search = |id: &str, title: &str, about: &str, licence: &str, size: u64| crate::ai::models::manifest().pack(id).cloned().unwrap_or_else(|| pack(id, title, about, licence, size));
             self.packs = vec![
                 crate::analysis::PackState { pack: pack("faces", "Faces", "Finds faces and groups them by person; you name the groups.", "Apache 2.0", 9 << 20), installed: true },
-                crate::analysis::PackState { pack: pack("search-light", "Smart search: Light", "Find pictures by describing them, in English.", "MIT", 218 << 20), installed: false },
-                crate::analysis::PackState { pack: pack("search-multilingual", "Smart search: Multilingual", "Find pictures by describing them, in your language.", "Apache 2.0", 511 << 20), installed: false },
+                crate::analysis::PackState { pack: search("search-light", "Smart search: Light", "Find pictures by describing them, in English.", "MIT", 218 << 20), installed: false },
+                crate::analysis::PackState { pack: search("search-multilingual", "Smart search: Multilingual", "Find pictures by describing them, in your language.", "Apache 2.0", 511 << 20), installed: false },
             ];
             self.packs_at = f64::INFINITY;
+            // ALBUMCRAFT_SHOT_AI_OFF=1: the AI features turned off
+            self.store.ai_enabled = std::env::var("ALBUMCRAFT_SHOT_AI_OFF").is_err();
+            if !self.store.ai_enabled {
+                self.analysis = Default::default();
+            }
             self.dialog = Some(Dialog::Settings { section: crate::settings_view::SettingsSection::Ai });
         }
         if shot_view == "maps" {
