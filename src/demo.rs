@@ -27,6 +27,17 @@ impl App {
         if let Some(p) = self.photos.get(6) {
             self.store.meta.entry(p.key.clone()).or_default().flag = Flag::Reject;
         }
+        // ALBUMCRAFT_SHOT_FOLDERS=tree: the sidebar's folders as on disk, the samples placed
+        // under a made-up Pictures folder by year (two of them in a Holidays folder)
+        if std::env::var("ALBUMCRAFT_SHOT_FOLDERS").is_ok_and(|v| v == "tree") {
+            self.store.folder_view = "tree".into();
+            self.store.roots = vec!["/home/me/Pictures".into()];
+            for (i, f) in self.folders.iter_mut().enumerate() {
+                let year = library::local_year(f.date);
+                let middle = if i < 2 { "/Holidays" } else { "" };
+                f.path = format!("/home/me/Pictures/{year}{middle}/{}", f.name);
+            }
+        }
         let shot_view = std::env::var("ALBUMCRAFT_SHOT_VIEW").unwrap_or_default();
         // a caption on two folders, a description on the first
         let paths: Vec<String> = self.folders.iter().take(2).map(|f| f.path.clone()).collect();

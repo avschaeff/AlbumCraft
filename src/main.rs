@@ -10,6 +10,7 @@ mod display;
 mod edit_view;
 mod export_view;
 mod file_actions;
+mod folder_tree;
 mod icons;
 mod import_view;
 mod collage_view;

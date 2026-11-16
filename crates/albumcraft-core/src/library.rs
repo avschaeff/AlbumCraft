@@ -219,6 +219,9 @@ pub struct Store {
     /// The look besides light / dark: "calm" (flat, one-colour icons) or "bright" (gradients,
     /// colour icons); see the window's `theme::Style`.
     pub style: String,
+    /// How the sidebar lists the folders: "years" (by year, newest first) or "tree" (as they are
+    /// on disk, under each library folder).
+    pub folder_view: String,
     /// The interface's language, as a code ("en", "fr"…); empty = the system's.
     pub language: String,
     /// Slideshow (and movie) settings.
@@ -309,6 +312,7 @@ impl Default for Store {
             print: Default::default(),
             theme: "system".into(),
             style: "calm".into(),
+            folder_view: "years".into(),
             language: String::new(),
             slideshow: Default::default(),
             online_maps: None,

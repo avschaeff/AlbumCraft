@@ -354,6 +354,9 @@ nav-places-hint = Your pictures on a map
 nav-albums = Albums
 nav-people = People
 nav-folders = Folders
+folders-by-year = By year
+folders-as-on-disk = As on disk
+settings-folder-view = Folder list
 people-hint = Tag people from the selection bar.
 scanning = Looking for pictures…
 

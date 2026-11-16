@@ -44,6 +44,8 @@ pub struct SidebarCounts {
     pub people: Vec<(String, usize)>,
     /// Folder indexes by year, newest first.
     pub by_year: Vec<(i32, Vec<usize>)>,
+    /// The folders as they are on disk, one tree per library folder.
+    pub tree: Vec<crate::folder_tree::Node>,
 }
 
 /// What the library list depends on (its cache key).
@@ -1255,6 +1257,7 @@ impl App {
             albums: self.store.albums.iter().map(|a| a.keys.iter().filter(|k| self.key_index.contains_key(*k)).count()).collect(),
             people: self.people(),
             by_year,
+            tree: crate::folder_tree::build(&self.store.roots, &self.folders.iter().map(|f| (f.path.as_str(), f.photos.len())).collect::<Vec<_>>()),
         });
         self.sidebar_cache = Some((self.list_rev, counts.clone()));
         counts
