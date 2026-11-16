@@ -90,6 +90,7 @@ enum AutoFix {
     Lucky,
     Exposure,
     WhiteBalance,
+    Contrast,
     Straighten,
 }
 
@@ -158,32 +159,54 @@ impl App {
         Some(imaging::apply_all(base, &ops))
     }
 
+    /// The picture with only its quarter turns (what auto straighten looks at: it sets the
+    /// straighten angle and the perspective as a whole, not on top of the ones there).
+    fn geometry_image(&self, id: usize) -> Option<image::RgbaImage> {
+        let base = self.big.get(&id).map(|b| &b.base).or_else(|| self.thumb_base.get(&id))?;
+        let turns: Vec<EditOp> = self.edits(id).into_iter().filter(|e| matches!(e, EditOp::Rotate(_))).collect();
+        Some(imaging::apply_all(base, &turns))
+    }
+
+    /// A one-click fix: it sets sliders of the Advanced panel (the adjustment, or the straighten
+    /// angle and the vertical perspective), never a step of its own.
     fn auto_fix(&mut self, id: usize, what: AutoFix) {
+        use crate::auto;
+        if let AutoFix::Straighten = what {
+            let Some(img) = self.geometry_image(id) else {
+                self.toast(tr!("edit-loading"));
+                return;
+            };
+            let (now, (now_v, horizontal)) = self.current_geometry(id);
+            match auto::geometry(&img) {
+                Some(g) if (g.angle - now).abs() < 0.2 && (g.vertical - now_v).abs() < 0.03 => self.toast(tr!("edit-already-level")),
+                Some(g) => {
+                    self.change_edits(id, "", |e| {
+                        crate::steps::set_geometry(e, EditOp::Straighten(g.angle));
+                        crate::steps::set_geometry(e, EditOp::Perspective { vertical: g.vertical, horizontal });
+                    });
+                    let angle = crate::locale::decimal(&format!("{:+.1}", g.angle));
+                    if (g.vertical - now_v).abs() < 0.03 {
+                        self.toast(tr!("edit-straightened", angle = angle));
+                    } else {
+                        let vertical = format!("{:+.0}", g.vertical * 100.0);
+                        self.toast(tr!("edit-straightened-perspective", angle = angle, vertical = vertical));
+                    }
+                }
+                None => self.toast(tr!("edit-no-horizon")),
+            }
+            return;
+        }
         let Some(img) = self.analysis_image(id) else {
             self.toast(tr!("edit-loading"));
             return;
         };
         let mut a = self.current_adjust(id);
         match what {
-            AutoFix::Lucky => {
-                let l = develop::lucky(&img);
-                a = Adjust { clarity: a.clarity, sharpen: a.sharpen, noise: a.noise, ..l };
-            }
-            AutoFix::Exposure => a.exposure = develop::auto_exposure(&img),
-            AutoFix::WhiteBalance => (a.temp, a.tint) = develop::auto_white_balance(&img),
-            AutoFix::Straighten => {
-                match develop::auto_straighten(&img) {
-                    Some(angle) if angle.abs() >= 0.2 => {
-                        let angle = (angle * 10.0).round() / 10.0;
-                        let total = (self.current_geometry(id).0 + angle).clamp(-45.0, 45.0);
-                        self.set_geometry(id, EditOp::Straighten(total), "");
-                        self.toast(tr!("edit-straightened", angle = crate::locale::decimal(&format!("{angle:+.1}"))));
-                    }
-                    Some(_) => self.toast(tr!("edit-already-level")),
-                    None => self.toast(tr!("edit-no-horizon")),
-                }
-                return;
-            }
+            AutoFix::Lucky => a = auto::lucky(&img, a),
+            AutoFix::Exposure => a = auto::exposure(&img, a),
+            AutoFix::Contrast => a = auto::contrast(&img, a),
+            AutoFix::WhiteBalance => (a.temp, a.tint) = auto::white_balance(&img),
+            AutoFix::Straighten => {}
         }
         self.set_adjust(id, a, "");
     }
@@ -690,7 +713,7 @@ impl App {
                     }
                     ui.end_row();
                     if tool_button(ui, icons::CONTRAST, &tr!("edit-auto-contrast")).on_hover_text(tr!("edit-auto-contrast-hint")).clicked() {
-                        self.push_edit(id, EditOp::AutoContrast);
+                        self.auto_fix(id, AutoFix::Contrast);
                     }
                     if tool_button(ui, icons::STRAIGHTEN, &tr!("edit-auto-straighten")).on_hover_text(tr!("edit-auto-straighten-hint")).clicked() {
                         self.auto_fix(id, AutoFix::Straighten);
@@ -750,7 +773,7 @@ impl App {
                 if ui.selectable_label(false, tr!("wb-auto")).clicked()
                     && let Some(img) = self.analysis_image(id)
                 {
-                    (a.temp, a.tint) = develop::auto_white_balance(&img);
+                    (a.temp, a.tint) = crate::auto::white_balance(&img);
                 }
             });
             if ui.button(format!("{} {}", icons::EYEDROPPER, tr!("edit-wb-pick"))).on_hover_text(tr!("edit-wb-pick-hint")).clicked() {

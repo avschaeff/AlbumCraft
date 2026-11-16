@@ -763,6 +763,7 @@ edit-slider-hint =
     Doppelklick zum Zurücksetzen
 edit-loading = Das Foto wird noch geladen.
 edit-straightened = Um { $angle }° ausgerichtet.
+edit-straightened-perspective = Um { $angle }° ausgerichtet, Perspektive korrigiert ({ $vertical }).
 edit-already-level = Dieses Foto scheint bereits gerade zu sein.
 edit-no-horizon = Kein klarer Horizont und keine klare senkrechte Linie zum Ausrichten gefunden.
 edit-histogram = Histogramm und Kamerainfos

@@ -763,6 +763,7 @@ edit-slider-hint =
     Doble clic para restablecer
 edit-loading = La foto todavía se está cargando.
 edit-straightened = Enderezada { $angle }°.
+edit-straightened-perspective = Enderezada { $angle }°, perspectiva corregida ({ $vertical }).
 edit-already-level = Esta foto ya parece estar derecha.
 edit-no-horizon = No se encontró ningún horizonte ni línea vertical nítida para enderezar.
 edit-histogram = Histograma y datos de la cámara

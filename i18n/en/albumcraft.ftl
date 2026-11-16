@@ -768,6 +768,7 @@ edit-slider-hint =
     Double-click to reset
 edit-loading = The picture is still loading.
 edit-straightened = Straightened by { $angle }°.
+edit-straightened-perspective = Straightened by { $angle }°, perspective corrected ({ $vertical }).
 edit-already-level = This picture already looks level.
 edit-no-horizon = No clear horizon or vertical lines found to straighten by.
 edit-histogram = Histogram and camera info

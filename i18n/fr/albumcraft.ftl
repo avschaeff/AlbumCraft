@@ -763,6 +763,7 @@ edit-slider-hint =
     Double-clic pour réinitialiser
 edit-loading = La photo est encore en cours de chargement.
 edit-straightened = Redressée de { $angle }°.
+edit-straightened-perspective = Redressée de { $angle }°, perspective corrigée ({ $vertical }).
 edit-already-level = Cette photo semble déjà droite.
 edit-no-horizon = Aucun horizon ni aucune ligne verticale nette trouvés pour redresser.
 edit-histogram = Histogramme et infos de l'appareil
