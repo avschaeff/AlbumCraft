@@ -117,6 +117,9 @@ const WHEEL_GAIN: f32 = 3.0;
 const PAN_GAIN: f32 = 1.6;
 const PAN_FRICTION: f32 = 3.0;
 
+/// How many levels of the folder tree (as on disk) are open at first.
+const OPEN_LEVELS: usize = 3;
+
 // ---------------------------------------------------------------------------------------------
 // small widgets
 
@@ -179,6 +182,33 @@ fn chip_with_flag(ui: &mut egui::Ui, label: &str, on: bool, flag: bool) -> egui:
     }
     text.paint(ui.ctx(), ui.painter(), rect_text.center(), color);
     resp.on_hover_cursor(egui::CursorIcon::PointingHand)
+}
+
+/// The two buttons beside the Folders heading: by year (calendar) or as on disk (tree), the one
+/// in use highlighted. Gives the view clicked when it is not the one in use (`true`: the tree).
+fn view_toggle(ui: &mut egui::Ui, tree: bool) -> Option<bool> {
+    let cell = egui::vec2(28.0, 22.0);
+    let (rect, _) = ui.allocate_exact_size(egui::vec2(cell.x * 2.0, cell.y), Sense::hover());
+    let p = ui.painter();
+    p.rect_stroke(rect, 6, Stroke::new(1.0, t().border), StrokeKind::Inside);
+    let mut chosen = None;
+    for (i, (is_tree, glyph, tip)) in [(false, icons::CALENDAR, tr!("folders-by-year")), (true, icons::TREE, tr!("folders-as-on-disk"))].into_iter().enumerate() {
+        let r = Rect::from_min_size(rect.min + egui::vec2(cell.x * i as f32, 0.0), cell);
+        let resp = ui.interact(r, ui.id().with(("folder-view", i)), Sense::click()).on_hover_cursor(egui::CursorIcon::PointingHand).on_hover_text(tip);
+        let on = is_tree == tree;
+        let inner = r.shrink(2.0);
+        if on {
+            crate::theme::paint_gradient(ui.painter(), inner, 4.0, t().select_top, t().select_bottom);
+        } else if resp.hovered() {
+            ui.painter().rect_filled(inner, 4, t().surface_hover);
+        }
+        let colour = if on { t().accent } else { t().text_weak };
+        crate::color_icons::paint(ui.ctx(), ui.painter(), glyph, r.center(), 14.0, colour);
+        if resp.clicked() && !on {
+            chosen = Some(is_tree);
+        }
+    }
+    chosen
 }
 
 /// One row of the sidebar.
@@ -505,12 +535,22 @@ impl App {
                         }
                     }
 
-                    caption(ui, &tr!("nav-folders"));
+                    self.folders_caption(ui);
                     let current_folder = match &self.list_pick {
                         Some(TraySet::Folder(fi)) if self.selection.is_empty() => Some(*fi),
                         _ => self.selection.iter().next().map(|&id| self.photos[id].folder),
                     };
-                    for (year, fis) in &counts.by_year {
+                    let tree = self.store.folder_view == "tree";
+                    if tree {
+                        ui.scope(|ui| {
+                            // a narrow step per level: names stay on one line in a narrow sidebar
+                            ui.spacing_mut().indent = 10.0;
+                            for node in &counts.tree {
+                                self.tree_row(ui, node, 0, current_folder);
+                            }
+                        });
+                    }
+                    for (year, fis) in counts.by_year.iter().filter(|_| !tree) {
                         let year = *year;
                         egui::CollapsingHeader::new(RichText::new(year.to_string()).size(13.0).strong().color(t().text))
                             .id_salt(("year", year))
@@ -532,6 +572,71 @@ impl App {
                     }
                 });
             });
+    }
+
+    /// The Folders heading, with the choice of how they are listed: by year or as on disk.
+    fn folders_caption(&mut self, ui: &mut egui::Ui) {
+        ui.add_space(14.0);
+        ui.horizontal(|ui| {
+            ui.label(RichText::new(tr!("nav-folders").to_uppercase()).size(11.0).strong().color(t().text_weak));
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                let tree = self.store.folder_view == "tree";
+                if let Some(tree) = view_toggle(ui, tree) {
+                    self.store.folder_view = if tree { "tree" } else { "years" }.into();
+                    self.dirty = true;
+                }
+            });
+        });
+        ui.add_space(2.0);
+    }
+
+    /// A folder of the tree and, when it is open, the folders in it (the first `OPEN_LEVELS`
+    /// levels are open at first).
+    fn tree_row(&mut self, ui: &mut egui::Ui, node: &crate::folder_tree::Node, depth: usize, current: Option<usize>) {
+        let is_current = node.folder.is_some() && node.folder == current && self.source == Source::Library;
+        let draw = |app: &mut App, ui: &mut egui::Ui| {
+            let (count, sub) = match node.folder.and_then(|fi| app.folders.get(fi).map(|f| (fi, f))) {
+                Some((_, f)) => (f.photos.len(), app.store.folder_captions.get(&f.path).cloned()),
+                None => (node.total, None),
+            };
+            let r = nav_row_with(ui, icons::FOLDER, &node.name, sub.as_deref(), Some(count), is_current);
+            if let Some(fi) = node.folder {
+                if r.clicked() {
+                    app.source = Source::Library;
+                    app.scroll_to_folder = Some(fi);
+                    app.pick_set(TraySet::Folder(fi));
+                }
+                r.context_menu(|ui| app.folder_menu(ui, fi));
+            }
+            r.on_hover_text(&node.path)
+        };
+        if node.children.is_empty() {
+            ui.horizontal(|ui| {
+                // level with the rows beside it that have an open / close triangle (16 points
+                // in front of their row, measured)
+                ui.add_space((16.0 - ui.spacing().item_spacing.x).max(0.0));
+                draw(self, ui);
+            });
+            return;
+        }
+        let id = ui.make_persistent_id(("folder-tree", &node.path));
+        let mut clicked = false;
+        egui::collapsing_header::CollapsingState::load_with_default_open(ui.ctx(), id, depth < OPEN_LEVELS)
+            .show_header(ui, |ui| {
+                let r = draw(self, ui);
+                clicked = node.folder.is_none() && r.clicked();
+            })
+            .body(|ui| {
+                for child in &node.children {
+                    self.tree_row(ui, child, depth + 1, current);
+                }
+            });
+        // a folder with no pictures of its own opens and closes when clicked
+        if clicked {
+            let mut state = egui::collapsing_header::CollapsingState::load_with_default_open(ui.ctx(), id, depth < OPEN_LEVELS);
+            state.toggle(ui);
+            state.store(ui.ctx());
+        }
     }
 
     /// Width / height of a picture as far as it is known.

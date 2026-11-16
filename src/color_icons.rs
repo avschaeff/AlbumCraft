@@ -22,6 +22,7 @@ svgs! {
     ADD => "add.svg",
     ALBUM => "album.svg",
     AUTO_FIX => "auto-fix.svg",
+    CALENDAR => "calendar.svg",
     COLLAGE => "collage.svg",
     DESKTOP => "desktop.svg",
     DRIVE => "drive.svg",
@@ -43,6 +44,7 @@ svgs! {
     SEARCH => "search.svg",
     STAR => "star.svg",
     TAG => "tag.svg",
+    TREE => "tree.svg",
     WB_SUNNY => "sunny.svg",
     WEB => "web.svg",
 }

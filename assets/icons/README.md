@@ -10,6 +10,7 @@ glyphs of `src/icons.rs` where one is listed here. From Microsoft's
 | add.svg | Color `add-circle` | `ADD` |
 | album.svg | Color `book` | `ALBUM` |
 | auto-fix.svg | Color `bot-sparkle` | `AUTO_FIX` |
+| calendar.svg | Color `calendar` | `CALENDAR` |
 | collage.svg | Color `board` | `COLLAGE` |
 | desktop.svg | Color `laptop` | `DESKTOP` |
 | drive.svg | Color `arrow-square-down` | `DRIVE` (Import) |
@@ -27,6 +28,7 @@ glyphs of `src/icons.rs` where one is listed here. From Microsoft's
 | search.svg | Color `search-sparkle` | `SEARCH` |
 | star.svg | Color `star` | `STAR` |
 | sunny.svg | Color `weather-sunny-low` | `WB_SUNNY` |
+| tree.svg | Color `org` | `TREE` |
 | web.svg | Color `globe` | `WEB` |
 | info.svg | `info-24-filled`, blue gradient added | `INFO` |
 | map.svg | `map-24-filled`, green gradient added | `MAP` |

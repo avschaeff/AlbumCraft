@@ -21,6 +21,7 @@ icons! {
     ARROW_BACK = "arrow_back" "\u{e5c4}";
     AUTO_FIX = "auto_awesome" "\u{e65f}";
     BORDER = "border_outer" "\u{e22f}";
+    CALENDAR = "calendar_month" "\u{ebcc}";
     CHECK = "check" "\u{e668}";
     CHEVRON_LEFT = "chevron_left" "\u{e5cb}";
     CHEVRON_RIGHT = "chevron_right" "\u{e5cc}";
@@ -68,6 +69,7 @@ icons! {
     STAR = "star" "\u{f09a}";
     STRAIGHTEN = "straighten" "\u{e41c}";
     SWAP = "swap_horiz" "\u{e8d4}";
+    TREE = "account_tree" "\u{e97a}";
     TAG = "sell" "\u{f05b}";
     TEXT = "text_fields" "\u{e262}";
     UNDO = "undo" "\u{e166}";

@@ -236,6 +236,16 @@ impl App {
             }
         });
         ui.add_space(14.0);
+        group(ui, &tr!("settings-folder-view"));
+        let mut view = if self.store.folder_view == "tree" { "tree" } else { "years" };
+        let before = view;
+        ui.radio_value(&mut view, "years", tr!("folders-by-year"));
+        ui.radio_value(&mut view, "tree", tr!("folders-as-on-disk"));
+        if view != before {
+            self.store.folder_view = view.into();
+            self.dirty = true;
+        }
+        ui.add_space(14.0);
         group(ui, &tr!("settings-excluded-title"));
         note(ui, &tr!("settings-excluded-intro"));
         ui.add_space(6.0);

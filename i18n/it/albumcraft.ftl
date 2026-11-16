@@ -350,6 +350,9 @@ nav-places-hint = Le tue foto su una mappa
 nav-albums = Album
 nav-people = Persone
 nav-folders = Cartelle
+folders-by-year = Per anno
+folders-as-on-disk = Come sul disco
+settings-folder-view = Elenco delle cartelle
 people-hint = Indica le persone dalla barra di selezione.
 scanning = Ricerca delle foto…
 
