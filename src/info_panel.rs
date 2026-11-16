@@ -268,17 +268,17 @@ impl App {
                 }
                 ui.label(RichText::new(if by_user { tr!("info-set-in-app") } else { tr!("info-from-gps") }).size(11.5).color(t().text_weak));
                 ui.horizontal(|ui| {
-                    if ui.button(format!("{}  {}", icons::EDIT, tr!("info-modify"))).on_hover_text(tr!("info-modify-hint")).clicked() {
+                    if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{}  {}", icons::EDIT, tr!("info-modify")), 13.5))).on_hover_text(tr!("info-modify-hint")).clicked() {
                         modify = true;
                     }
-                    if ui.button(format!("{}  {}", icons::MAP, tr!("album-show-map"))).on_hover_text(tr!("info-show-map-hint")).clicked() {
+                    if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{}  {}", icons::MAP, tr!("album-show-map")), 13.5))).on_hover_text(tr!("info-show-map-hint")).clicked() {
                         show = true;
                     }
                 });
             }
             None => {
                 ui.label(RichText::new(tr!("info-no-location")).size(12.5).color(t().text_weak));
-                if ui.button(format!("{}  {}", icons::LOCATION, tr!("ctx-location"))).on_hover_text(tr!("info-set-location-hint")).clicked() {
+                if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{}  {}", icons::LOCATION, tr!("ctx-location")), 13.5))).on_hover_text(tr!("info-set-location-hint")).clicked() {
                     modify = true;
                 }
             }

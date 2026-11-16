@@ -13,6 +13,7 @@ mod file_actions;
 mod icons;
 mod import_view;
 mod collage_view;
+mod color_icons;
 mod info_panel;
 mod labels;
 mod library_view;

@@ -837,7 +837,7 @@ impl App {
                                     chosen = Some(f.clone());
                                 }
                             }
-                        } else if ui.add(egui::Button::new(RichText::new(format!("{}  {}", icons::SEARCH, tr!("map-search-addresses"))).size(12.5)).frame(false)).clicked() {
+                        } else if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{}  {}", icons::SEARCH, tr!("map-search-addresses")), 12.5)).frame(false)).clicked() {
                             search_online = true;
                         }
                     }
@@ -969,7 +969,7 @@ impl App {
                         if ui.small_button(icons::CLOSE).on_hover_text(tr!("map-close-hint")).clicked() {
                             close = true;
                         }
-                        if ui.button(format!("{} {}", icons::LOCATION, tr!("map-change-location"))).clicked() {
+                        if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::LOCATION, tr!("map-change-location")), 13.5))).clicked() {
                             change = true;
                         }
                         if ui.button(tr!("map-select-in-library")).on_hover_text(tr!("map-select-in-library-hint")).clicked() {

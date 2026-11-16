@@ -22,6 +22,9 @@ fonts/OFL.txt, fonts/emoji-icon-font-mit-license.txt).
 AlbumCraft builds embed a subset of the Material Symbols icon font (assets/fonts/, Copyright
 Google LLC), Apache License 2.0 (assets/fonts/LICENSE-MaterialSymbols).
 
+AlbumCraft builds embed icons of Fluent UI System Icons (assets/icons/, Copyright (c) 2020
+Microsoft Corporation), MIT License (assets/icons/LICENSE).
+
 AlbumCraft builds embed map data (assets/geo/, details in assets/geo/README.md):
 
   Land, lakes and country borders - Natural Earth (naturalearthdata.com), public domain

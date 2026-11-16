@@ -369,7 +369,7 @@ impl App {
                         if !st.sources.is_empty() {
                             ui.separator();
                         }
-                        if ui.button(format!("{}  {}", icons::FOLDER, tr!("export-choose-folder"))).clicked() {
+                        if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{}  {}", icons::FOLDER, tr!("export-choose-folder")), 13.5))).clicked() {
                             choose = true;
                         }
                     });
@@ -442,7 +442,7 @@ impl App {
                         if !st.dest_roots.is_empty() {
                             ui.separator();
                         }
-                        if ui.button(format!("{}  {}", icons::FOLDER, tr!("import-another-folder"))).clicked() {
+                        if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{}  {}", icons::FOLDER, tr!("import-another-folder")), 13.5))).clicked() {
                             choose_dest = true;
                         }
                     });
@@ -518,7 +518,7 @@ impl App {
                 ui.add_space(6.0);
                 ui.label(RichText::new(tr!("import-none-in", path = src.display().to_string())).size(15.0).color(t().text_weak));
                 ui.add_space(12.0);
-                if ui.button(format!("{}  {}", icons::FOLDER, tr!("import-choose-another"))).clicked() {
+                if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{}  {}", icons::FOLDER, tr!("import-choose-another")), 13.5))).clicked() {
                     choose = true;
                 }
                 return;
@@ -539,7 +539,7 @@ impl App {
                 ui.label(RichText::new(tr!("import-no-cards", icon = icons::REFRESH)).color(t().text_weak).size(12.5));
                 ui.add_space(4.0);
             }
-            let b = egui::Button::new(RichText::new(format!("{}  {}", icons::FOLDER, tr!("export-choose-folder"))).size(14.0)).min_size(egui::vec2(260.0, 34.0));
+            let b = egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{}  {}", icons::FOLDER, tr!("export-choose-folder")), 14.0)).min_size(egui::vec2(260.0, 34.0));
             if ui.add(b).clicked() {
                 choose = true;
             }

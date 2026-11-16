@@ -325,6 +325,7 @@ impl App {
         egui::Panel::top("edit_top")
             .frame(egui::Frame::new().fill(t().toolbar_bg).inner_margin(egui::Margin::symmetric(8, 6)).stroke(Stroke::new(1.0, t().border)))
             .show(ui, |ui| {
+                crate::theme::panel_gradient(ui, egui::Margin::symmetric(8, 6), t().band_top, t().band_bottom);
                 ui.horizontal(|ui| {
                     if ui.add(egui::Button::new(RichText::new(format!("{}  {}", icons::ARROW_BACK, tr!("edit-back"))).strong()).min_size(egui::vec2(0.0, 28.0))).clicked() {
                         self.edit_go(PendingLeave::Library);
@@ -385,7 +386,7 @@ impl App {
                             self.edit.show_original = true;
                         }
                         ui.separator();
-                        if ui.button(format!("{} {}", icons::PLAY, tr!("edit-slideshow"))).clicked() {
+                        if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::PLAY, tr!("edit-slideshow")), 13.5))).clicked() {
                             let list = self.edit.list.clone();
                             self.start_slideshow(list, id);
                         }
@@ -490,6 +491,7 @@ impl App {
             .exact_size(260.0)
             .frame(egui::Frame::new().fill(t().left_bg).inner_margin(egui::Margin::same(8)).stroke(Stroke::new(1.0, t().border)))
             .show(ui, |ui| {
+                crate::theme::panel_gradient(ui, egui::Margin::same(8), t().side_top, t().side_bottom);
                 ui.horizontal(|ui| {
                     for (t, label) in [(Tab::Edit, tr!("edit-tab-edit")), (Tab::Presets, tr!("edit-tab-presets")), (Tab::Effects, tr!("edit-tab-effects"))] {
                         if ui.selectable_label(self.edit.tab == t, RichText::new(label).strong()).clicked() {
@@ -654,7 +656,7 @@ impl App {
             Tool::None => {
                 ui.label(RichText::new(tr!("edit-oneclick")).size(12.0).weak());
                 let lucky = ui
-                    .add_sized([ui.available_width(), 34.0], egui::Button::new(RichText::new(format!("{}  {}", icons::AUTO_FIX, tr!("edit-lucky"))).size(14.0)))
+                    .add_sized([ui.available_width(), 34.0], egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{}  {}", icons::AUTO_FIX, tr!("edit-lucky")), 14.0)))
                     .on_hover_text(tr!("edit-lucky-hint"));
                 if lucky.clicked() {
                     self.auto_fix(id, AutoFix::Lucky);
@@ -1068,6 +1070,7 @@ impl App {
         egui::Panel::bottom("edit_bottom")
             .frame(egui::Frame::new().fill(t().tray_bg).inner_margin(egui::Margin::symmetric(8, 6)).stroke(Stroke::new(1.0, t().border)))
             .show(ui, |ui| {
+                crate::theme::panel_gradient(ui, egui::Margin::symmetric(8, 6), t().band_top, t().band_bottom);
                 ui.horizontal(|ui| {
                     use crate::library::Flag;
                     use crate::library_view::{pick_button, rating_input, reject_button};
@@ -1097,10 +1100,10 @@ impl App {
                         self.meta_mut(id).caption = caption;
                     }
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui.button(format!("{} {}", icons::EXPORT, tr!("output-export"))).clicked() {
+                        if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::EXPORT, tr!("output-export")), 13.5))).clicked() {
                             self.open_export(vec![id]);
                         }
-                        if crate::print::available() && ui.button(format!("{} {}", icons::PRINT, tr!("output-print"))).on_hover_text(tr!("edit-print-hint")).clicked() {
+                        if crate::print::available() && ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::PRINT, tr!("output-print")), 13.5))).on_hover_text(tr!("edit-print-hint")).clicked() {
                             self.open_print();
                         }
                         self.album_menu(ui, format!("{} {} {}", icons::ALBUM, tr!("edit-album"), icons::EXPAND_MORE), &[id]);

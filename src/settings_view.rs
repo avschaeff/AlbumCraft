@@ -95,7 +95,7 @@ impl App {
                 ui.vertical(|ui| {
                     ui.set_width(160.0);
                     for s in SettingsSection::ALL {
-                        let text = RichText::new(format!("{}  {}", s.icon(), s.label())).size(14.0);
+                        let text = crate::color_icons::atoms(ui.ctx(), format!("{}  {}", s.icon(), s.label()), 14.0);
                         let b = egui::Button::new(text).selected(section == s).frame_when_inactive(false).min_size(egui::vec2(160.0, 30.0));
                         if ui.add(b).clicked() {
                             section = s;
@@ -170,6 +170,18 @@ impl App {
             self.dirty = true;
         }
 
+        group(ui, &tr!("settings-style"));
+        let mut style = crate::theme::Style::from_name(&self.store.style);
+        let before = style;
+        for s in [crate::theme::Style::Calm, crate::theme::Style::Bright] {
+            ui.radio_value(&mut style, s, s.label());
+        }
+        if style != before {
+            self.store.style = style.name().into();
+            self.dirty = true;
+        }
+        note(ui, &tr!("settings-style-note"));
+
         group(ui, &tr!("settings-bar"));
         let b = &mut self.store.bar_style;
         let mut changed = ui.radio_value(b, BarStyle::Compact, tr!("settings-bar-compact")).changed();
@@ -216,7 +228,7 @@ impl App {
         }
         ui.add_space(8.0);
         ui.horizontal(|ui| {
-            if ui.button(format!("{} {}", icons::ADD, tr!("add-folder"))).clicked() {
+            if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::ADD, tr!("add-folder")), 13.5))).clicked() {
                 self.add_library_folder();
             }
             if ui.button(format!("{} {}", icons::REFRESH, tr!("scan-again"))).on_hover_text(tr!("settings-folders-rescan-hint")).clicked() {
@@ -246,7 +258,7 @@ impl App {
             self.rescan();
         }
         ui.add_space(8.0);
-        if ui.add_enabled(!self.store.roots.is_empty(), egui::Button::new(format!("{} {}", icons::ADD, tr!("settings-excluded-add")))).clicked() {
+        if ui.add_enabled(!self.store.roots.is_empty(), egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::ADD, tr!("settings-excluded-add")), 13.5))).clicked() {
             self.add_excluded_folder();
         }
     }
@@ -310,7 +322,7 @@ impl App {
                 });
             }
             None => {
-                if ui.button(format!("{} {}", icons::MUSIC, tr!("settings-music-choose"))).clicked() {
+                if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::MUSIC, tr!("settings-music-choose")), 13.5))).clicked() {
                     changed |= crate::slideshow_view::pick_music(s);
                 }
             }
@@ -374,7 +386,7 @@ impl App {
         if let Some(path) = crate::library::store_path() {
             ui.horizontal(|ui| {
                 ui.label(RichText::new(path.to_string_lossy()).monospace().size(12.0));
-                if ui.small_button(format!("{} {}", icons::FOLDER, tr!("notice-show"))).clicked()
+                if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::FOLDER, tr!("notice-show")), 12.0)).small()).clicked()
                     && let Err(e) = crate::library_view::reveal_in_file_manager(&path)
                 {
                     self.toast(tr!("notice-no-file-manager", error = e.to_string()));
@@ -385,7 +397,7 @@ impl App {
         let custom = crate::library::library_folder().is_some();
         ui.horizontal(|ui| {
             // not while the library must not be saved (it could not be read, or a screenshot)
-            if ui.add_enabled(self.persist, egui::Button::new(format!("{} {}", icons::FOLDER, tr!("settings-library-change")))).on_hover_text(tr!("settings-library-change-hint")).clicked()
+            if ui.add_enabled(self.persist, egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::FOLDER, tr!("settings-library-change")), 13.5))).on_hover_text(tr!("settings-library-change-hint")).clicked()
                 && let Some(dir) = rfd::FileDialog::new().set_title(tr!("choose-folder-dialog")).pick_folder()
             {
                 self.relocate_library(Some(dir));
@@ -440,6 +452,9 @@ impl App {
         self.persist = self.shot.is_none();
         if let Ok(v) = std::env::var("ALBUMCRAFT_THEME") {
             self.store.theme = v;
+        }
+        if let Ok(v) = std::env::var("ALBUMCRAFT_STYLE") {
+            self.store.style = v;
         }
         i18n::set_language(&self.store.language);
         crate::theme::set_fonts(ctx);

@@ -1,7 +1,9 @@
 //! Light and dark themes: one set of colour tokens, read with `t()`, and the egui style built from them.
 //!
-//! Style after PhotoCraft's "Studio" themes: flat surfaces, hairline borders, rounded controls and a
-//! single blue accent. Never hard-code a UI colour in a view; add a token here instead.
+//! Two styles, each light and dark: Calm, after PhotoCraft's "Studio" themes (flat surfaces,
+//! hairline borders, rounded controls and a single blue accent), and Bright (gradients on the
+//! bars and the sidebar, a green main button, colour icons from `crate::color_icons`). Never
+//! hard-code a UI colour in a view; add a token here instead.
 
 use eframe::egui::{self, Color32, CornerRadius, Stroke};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -45,6 +47,18 @@ pub struct Tokens {
     pub map_water: Color32,
     pub map_land: Color32,
     pub map_border: Color32,
+    /// Bars (top bar, the bars at the bottom, the editor's bars): from top to bottom.
+    pub band_top: Color32,
+    pub band_bottom: Color32,
+    /// The sidebar and the editor's tool panel, from top to bottom.
+    pub side_top: Color32,
+    pub side_bottom: Color32,
+    /// The selected row of the sidebar, from top to bottom.
+    pub select_top: Color32,
+    pub select_bottom: Color32,
+    /// The main button (Import), from top to bottom.
+    pub primary_top: Color32,
+    pub primary_bottom: Color32,
 }
 
 const LIGHT: Tokens = Tokens {
@@ -77,6 +91,14 @@ const LIGHT: Tokens = Tokens {
     map_water: Color32::from_rgb(196, 218, 236),
     map_land: Color32::from_rgb(244, 241, 232),
     map_border: Color32::from_rgb(178, 168, 190),
+    band_top: Color32::from_rgb(255, 255, 255),
+    band_bottom: Color32::from_rgb(255, 255, 255),
+    side_top: Color32::from_rgb(246, 247, 250),
+    side_bottom: Color32::from_rgb(246, 247, 250),
+    select_top: Color32::from_rgb(214, 228, 252),
+    select_bottom: Color32::from_rgb(214, 228, 252),
+    primary_top: Color32::from_rgb(47, 123, 245),
+    primary_bottom: Color32::from_rgb(47, 123, 245),
 };
 
 const DARK: Tokens = Tokens {
@@ -109,13 +131,190 @@ const DARK: Tokens = Tokens {
     map_water: Color32::from_rgb(28, 38, 52),
     map_land: Color32::from_rgb(58, 60, 64),
     map_border: Color32::from_rgb(98, 96, 110),
+    band_top: Color32::from_rgb(27, 28, 31),
+    band_bottom: Color32::from_rgb(27, 28, 31),
+    side_top: Color32::from_rgb(35, 36, 40),
+    side_bottom: Color32::from_rgb(35, 36, 40),
+    select_top: Color32::from_rgb(36, 62, 104),
+    select_bottom: Color32::from_rgb(36, 62, 104),
+    primary_top: Color32::from_rgb(76, 148, 255),
+    primary_bottom: Color32::from_rgb(76, 148, 255),
+};
+
+/// The Bright style, light: sky-blue gradients, a green main button, colour icons.
+const BRIGHT_LIGHT: Tokens = Tokens {
+    dark: false,
+    toolbar_bg: Color32::from_rgb(242, 247, 253),
+    left_bg: Color32::from_rgb(238, 244, 252),
+    lightbox_bg: Color32::from_rgb(255, 255, 255),
+    header_bg: Color32::from_rgb(234, 242, 252),
+    status_bg: Color32::from_rgb(232, 240, 250),
+    tray_bg: Color32::from_rgb(228, 237, 249),
+    surface: Color32::from_rgb(255, 255, 255),
+    surface_hover: Color32::from_rgb(228, 239, 253),
+    border: Color32::from_rgb(204, 216, 234),
+    border_strong: Color32::from_rgb(170, 188, 214),
+    text: Color32::from_rgb(34, 42, 58),
+    text_strong: Color32::from_rgb(16, 24, 40),
+    text_weak: Color32::from_rgb(102, 114, 136),
+    accent: Color32::from_rgb(24, 118, 230),
+    select_bg: Color32::from_rgb(200, 224, 254),
+    select_border: Color32::from_rgb(24, 118, 230),
+    hover_wash: Color32::from_rgb(226, 238, 254),
+    edit_bg: Color32::from_rgb(222, 230, 242),
+    star: Color32::from_rgb(255, 184, 0),
+    star_outline: Color32::from_rgb(196, 120, 0),
+    pick: Color32::from_rgb(34, 168, 84),
+    reject: Color32::from_rgb(226, 56, 70),
+    placeholder: Color32::from_rgb(222, 230, 242),
+    good: Color32::from_rgb(24, 140, 64),
+    bad: Color32::from_rgb(208, 44, 54),
+    map_water: Color32::from_rgb(180, 214, 242),
+    map_land: Color32::from_rgb(246, 243, 230),
+    map_border: Color32::from_rgb(170, 160, 196),
+    band_top: Color32::from_rgb(253, 254, 255),
+    band_bottom: Color32::from_rgb(222, 234, 249),
+    side_top: Color32::from_rgb(246, 250, 255),
+    side_bottom: Color32::from_rgb(224, 235, 249),
+    select_top: Color32::from_rgb(214, 234, 255),
+    select_bottom: Color32::from_rgb(168, 206, 252),
+    primary_top: Color32::from_rgb(74, 196, 104),
+    primary_bottom: Color32::from_rgb(28, 148, 72),
+};
+
+/// The Bright style, dark: deep blue-grey gradients, a green main button, colour icons.
+const BRIGHT_DARK: Tokens = Tokens {
+    dark: true,
+    toolbar_bg: Color32::from_rgb(38, 43, 54),
+    left_bg: Color32::from_rgb(32, 37, 48),
+    lightbox_bg: Color32::from_rgb(25, 28, 36),
+    header_bg: Color32::from_rgb(38, 44, 57),
+    status_bg: Color32::from_rgb(30, 34, 44),
+    tray_bg: Color32::from_rgb(36, 41, 53),
+    surface: Color32::from_rgb(44, 50, 64),
+    surface_hover: Color32::from_rgb(58, 67, 86),
+    border: Color32::from_rgb(60, 68, 88),
+    border_strong: Color32::from_rgb(86, 96, 120),
+    text: Color32::from_rgb(222, 227, 238),
+    text_strong: Color32::from_rgb(246, 248, 252),
+    text_weak: Color32::from_rgb(146, 156, 178),
+    accent: Color32::from_rgb(96, 166, 255),
+    select_bg: Color32::from_rgb(40, 76, 132),
+    select_border: Color32::from_rgb(96, 166, 255),
+    hover_wash: Color32::from_rgb(48, 62, 88),
+    edit_bg: Color32::from_rgb(18, 20, 27),
+    star: Color32::from_rgb(255, 190, 20),
+    star_outline: Color32::from_rgb(236, 172, 20),
+    pick: Color32::from_rgb(84, 210, 126),
+    reject: Color32::from_rgb(246, 96, 104),
+    placeholder: Color32::from_rgb(50, 56, 70),
+    good: Color32::from_rgb(92, 206, 128),
+    bad: Color32::from_rgb(246, 104, 110),
+    map_water: Color32::from_rgb(26, 40, 60),
+    map_land: Color32::from_rgb(56, 60, 68),
+    map_border: Color32::from_rgb(100, 98, 120),
+    band_top: Color32::from_rgb(50, 57, 73),
+    band_bottom: Color32::from_rgb(32, 36, 47),
+    side_top: Color32::from_rgb(40, 46, 60),
+    side_bottom: Color32::from_rgb(27, 31, 41),
+    select_top: Color32::from_rgb(62, 110, 186),
+    select_bottom: Color32::from_rgb(38, 72, 132),
+    primary_top: Color32::from_rgb(64, 184, 100),
+    primary_bottom: Color32::from_rgb(30, 132, 66),
 };
 
 static IS_DARK: AtomicBool = AtomicBool::new(false);
+static IS_BRIGHT: AtomicBool = AtomicBool::new(false);
+
+/// The Bright style is on (colour icons, gradients).
+pub fn bright() -> bool {
+    IS_BRIGHT.load(Ordering::Relaxed)
+}
+
+/// The look of the interface, besides light or dark (saved in the library file as `Store.style`).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Style {
+    /// Flat surfaces and one-colour icons.
+    Calm,
+    /// Gradients and colour icons.
+    Bright,
+}
+
+impl Style {
+    pub fn from_name(s: &str) -> Style {
+        if s == "bright" { Style::Bright } else { Style::Calm }
+    }
+    pub fn name(self) -> &'static str {
+        match self {
+            Style::Calm => "calm",
+            Style::Bright => "bright",
+        }
+    }
+    pub fn label(self) -> String {
+        match self {
+            Style::Calm => crate::i18n::tr!("style-calm"),
+            Style::Bright => crate::i18n::tr!("style-bright"),
+        }
+    }
+}
+
+/// Fill `rect` (corners rounded by `radius`) with a vertical gradient from `top` to `bottom`.
+pub fn paint_gradient(painter: &egui::Painter, rect: egui::Rect, radius: f32, top: Color32, bottom: Color32) {
+    if top == bottom {
+        painter.rect_filled(rect, radius, top);
+        return;
+    }
+    let r = radius.min(rect.width() / 2.0).min(rect.height() / 2.0).max(0.0);
+    // the outline, corners in a few steps; convex, so a fan from the centre fills it
+    let mut points = vec![];
+    let steps = if r > 0.0 { 6 } else { 0 };
+    let corners = [
+        (egui::pos2(rect.right() - r, rect.top() + r), -90.0f32),
+        (egui::pos2(rect.right() - r, rect.bottom() - r), 0.0),
+        (egui::pos2(rect.left() + r, rect.bottom() - r), 90.0),
+        (egui::pos2(rect.left() + r, rect.top() + r), 180.0),
+    ];
+    for (c, start) in corners {
+        for i in 0..=steps {
+            let a = (start + 90.0 * i as f32 / steps.max(1) as f32).to_radians();
+            points.push(c + egui::vec2(a.cos(), a.sin()) * r);
+        }
+    }
+    let colour_at = |y: f32| {
+        let f = ((y - rect.top()) / rect.height().max(1.0)).clamp(0.0, 1.0);
+        top.lerp_to_gamma(bottom, f)
+    };
+    let mut mesh = egui::Mesh::default();
+    mesh.colored_vertex(rect.center(), colour_at(rect.center().y));
+    for p in &points {
+        mesh.colored_vertex(*p, colour_at(p.y));
+    }
+    let n = points.len() as u32;
+    for i in 0..n {
+        mesh.add_triangle(0, 1 + i, 1 + (i + 1) % n);
+    }
+    painter.add(egui::Shape::mesh(mesh));
+}
+
+/// Paint a panel's gradient behind its content: called first in the panel's closure, with the
+/// margin of its frame. Nothing in the Calm style (its frame's fill is the colour).
+pub fn panel_gradient(ui: &egui::Ui, margin: egui::Margin, top: Color32, bottom: Color32) {
+    if !bright() {
+        return;
+    }
+    let rect = ui.max_rect() + margin;
+    let painter = ui.ctx().layer_painter(ui.layer_id()).with_clip_rect(rect);
+    paint_gradient(&painter, rect, 0.0, top, bottom);
+}
 
 /// The tokens of the theme in use.
 pub fn t() -> &'static Tokens {
-    if IS_DARK.load(Ordering::Relaxed) { &DARK } else { &LIGHT }
+    match (IS_BRIGHT.load(Ordering::Relaxed), IS_DARK.load(Ordering::Relaxed)) {
+        (false, false) => &LIGHT,
+        (false, true) => &DARK,
+        (true, false) => &BRIGHT_LIGHT,
+        (true, true) => &BRIGHT_DARK,
+    }
 }
 
 /// How the person chose the appearance (saved in the library file).
@@ -151,7 +350,9 @@ impl Mode {
 }
 
 /// Resolves the mode against the system theme, and rebuilds the egui style when the result changed.
-pub fn apply(ctx: &egui::Context, mode: Mode, force: bool) {
+pub fn apply(ctx: &egui::Context, mode: Mode, style: Style, force: bool) {
+    let bright = style == Style::Bright;
+    let style_changed = bright != IS_BRIGHT.swap(bright, Ordering::Relaxed);
     let pref = match mode {
         Mode::System => egui::ThemePreference::System,
         Mode::Light => egui::ThemePreference::Light,
@@ -165,7 +366,7 @@ pub fn apply(ctx: &egui::Context, mode: Mode, force: bool) {
         ctx.options_mut(|o| o.fallback_theme = egui::Theme::Light);
     }
     let dark = ctx.theme() == egui::Theme::Dark;
-    if force || dark != IS_DARK.load(Ordering::Relaxed) {
+    if force || style_changed || dark != IS_DARK.load(Ordering::Relaxed) {
         IS_DARK.store(dark, Ordering::Relaxed);
         setup_style(ctx);
     }

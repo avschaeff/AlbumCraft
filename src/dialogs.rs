@@ -253,7 +253,7 @@ impl App {
                             self.make_movie(list.clone(), size);
                             close = true;
                         }
-                        if ui.button(format!("{} {}", icons::PLAY, tr!("movie-preview"))).clicked() {
+                        if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::PLAY, tr!("movie-preview")), 13.5))).clicked() {
                             let first = list.first().copied().unwrap_or(0);
                             self.start_slideshow(list.clone(), first);
                             close = true;

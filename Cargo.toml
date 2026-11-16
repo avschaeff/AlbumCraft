@@ -56,6 +56,8 @@ image = { workspace = true, features = ["png"] }
 miniz_oxide.workspace = true
 rodio = { version = "0.23", default-features = false, features = ["playback", "mp3", "flac", "vorbis", "wav", "mp4"] }
 rfd = "0.17.2"
+# draws the colour icons of the Bright style (assets/icons/, src/color_icons.rs)
+resvg = { version = "0.45.1", default-features = false }
 serde_json.workspace = true
 ureq.workspace = true
 i18n-embed = { version = "0.16.0", features = ["fluent-system", "desktop-requester"] }

@@ -55,7 +55,7 @@ impl App {
             ui.close();
         }
         self.open_with_menu(ui, &key);
-        if ui.button(format!("{} {}", icons::FOLDER, tr!("ctx-show-file"))).clicked() {
+        if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::FOLDER, tr!("ctx-show-file")), 13.5))).clicked() {
             if let Err(e) = reveal_in_file_manager(Path::new(&key)) {
                 self.toast(tr!("notice-no-file-manager", error = e.to_string()));
             }
@@ -68,7 +68,7 @@ impl App {
             ui.close();
         }
         ui.separator();
-        if keys.len() == 1 && ui.button(format!("{} {}", icons::EDIT, tr!("ctx-rename"))).clicked() {
+        if keys.len() == 1 && ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::EDIT, tr!("ctx-rename")), 13.5))).clicked() {
             let stem = Path::new(&key).file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
             self.dialog = Some(Dialog::Rename { path: key.clone(), folder: false, name: stem, error: String::new() });
             ui.close();
@@ -128,16 +128,16 @@ impl App {
             ui.close();
         }
         if let Some(&first) = ids.first() {
-            if ui.button(format!("{} {}", icons::PLAY, tr!("album-slideshow"))).clicked() {
+            if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::PLAY, tr!("album-slideshow")), 13.5))).clicked() {
                 self.start_slideshow(ids.clone(), first);
                 ui.close();
             }
-            if ui.button(format!("{} {}", icons::MAP, tr!("album-show-map"))).clicked() {
+            if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::MAP, tr!("album-show-map")), 13.5))).clicked() {
                 self.show_set_on_map(f.name.clone(), &ids);
                 ui.close();
             }
             self.album_menu(ui, format!("{} {}", icons::ALBUM, tr!("ctx-add-to-album")), &ids);
-            if ui.button(format!("{} {}", icons::EXPORT, tr!("ctx-export"))).clicked() {
+            if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::EXPORT, tr!("ctx-export")), 13.5))).clicked() {
                 self.open_export(ids.clone());
                 ui.close();
             }
@@ -151,7 +151,7 @@ impl App {
             return;
         }
         ui.separator();
-        if ui.button(format!("{} {}", icons::FOLDER, tr!("folder-open"))).clicked() {
+        if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::FOLDER, tr!("folder-open")), 13.5))).clicked() {
             if let Err(e) = open_with_system(Path::new(&f.path)) {
                 self.toast(tr!("notice-no-file-manager", error = e.to_string()));
             }
@@ -168,7 +168,7 @@ impl App {
             ui.close();
         }
         ui.separator();
-        if ui.button(format!("{} {}", icons::EDIT, tr!("ctx-rename"))).clicked() {
+        if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::EDIT, tr!("ctx-rename")), 13.5))).clicked() {
             self.dialog = Some(Dialog::Rename { path: f.path.clone(), folder: true, name: f.name.clone(), error: String::new() });
             ui.close();
         }
