@@ -222,6 +222,9 @@ pub struct Store {
     /// How the sidebar lists the folders: "years" (by year, newest first) or "tree" (as they are
     /// on disk, under each library folder).
     pub folder_view: String,
+    /// The tag hierarchy: a tag (as spelt in the library) and the tag it is under; an empty
+    /// parent keeps a tag that no picture has yet at the top (a group). See `tags`.
+    pub tag_parents: std::collections::BTreeMap<String, String>,
     /// The interface's language, as a code ("en", "fr"…); empty = the system's.
     pub language: String,
     /// Slideshow (and movie) settings.
@@ -313,6 +316,7 @@ impl Default for Store {
             theme: "system".into(),
             style: "calm".into(),
             folder_view: "years".into(),
+            tag_parents: Default::default(),
             language: String::new(),
             slideshow: Default::default(),
             online_maps: None,

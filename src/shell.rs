@@ -403,6 +403,11 @@ impl App {
                                 ui.close();
                             }
                         });
+                        // the tags: the tree in a popup, a click shows a tag's pictures
+                        let tag_on = self.search_terms.iter().any(|s| matches!(s, SearchTerm::Tag(_)));
+                        let label = if wide > 900.0 { format!("{}  {}", icons::TAG, tr!("bar-tags")) } else { icons::TAG.to_string() };
+                        let resp = chip(ui, &label, tag_on).on_hover_text(tr!("bar-tags-hint"));
+                        egui::Popup::menu(&resp).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| self.tags_menu(ui));
                         let on = self.filter.picks;
                         if chip_with_flag(ui, &if wide > 800.0 { tr!("nav-picks") } else { String::new() }, on, true).on_hover_text(tr!("bar-picks-hint")).clicked() {
                             self.filter.picks = !on;

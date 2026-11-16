@@ -63,12 +63,71 @@ new-album-adds = { $n ->
 new-album-create = Create
 rename-album-rename = Rename
 
-tags-intro = { $n ->
-    [one] Add to the selected picture. Separate words with commas.
-   *[other] Add to the { $n } selected pictures. Separate words with commas.
-}
-tags-tags = Tags:
 tags-people = People:
+tags-intro = { $n ->
+    [one] Tags of the selected picture. Changes apply at once.
+   *[other] Tags of the { $n } selected pictures. Changes apply at once.
+}
+tags-type = Type a tag, or several separated by commas
+tags-library = Your tags (a click puts one on or takes it off):
+tags-none-yet = No tags yet.
+tags-chip-remove = { $n ->
+    [one] Click to take it off ({ $n } picture has it)
+   *[other] Click to take it off ({ $n } pictures have it)
+}
+tags-chip-some = { $n ->
+    [one] Only some of them have it: click to put it on all ({ $n } picture has it)
+   *[other] Only some of them have it: click to put it on all ({ $n } pictures have it)
+}
+tags-chip-add = { $n ->
+    [one] Click to add it ({ $n } picture has it)
+   *[other] Click to add it ({ $n } pictures have it)
+}
+tags-more = +{ $n } more: type to find them
+tags-filter = Find a tag…
+tags-manage = Manage tags…
+tags-manage-title = Manage tags
+tags-manage-intro = Choose a tag on the left to rename it, merge it into another, put it under another tag or delete it.
+tags-manage-note = A tag also shows the pictures of the tags under it. Changes apply at once.
+tags-new = New tag
+tags-create = Create
+tags-create-hint = A tag no picture has yet, for example a group to put other tags under
+tags-count = { $n ->
+    [one] { $n } picture
+   *[other] { $n } pictures
+}
+tags-count-under = { $n ->
+    [one] { $n } picture, { $total } with the tags under it
+   *[other] { $n } pictures, { $total } with the tags under it
+}
+tags-name = Name
+tags-rename = Rename
+tags-merge = Merge
+tags-merge-note = { $tag } exists already: the two become one tag.
+tags-merge-into = Merge into
+tags-merge-hint = The pictures tagged { $tag } get the chosen tag instead
+tags-choose = Choose a tag…
+tags-under = Under
+tags-top = (top level)
+tags-show = Show pictures
+tags-delete = Delete tag
+tags-delete-hint = { $n ->
+    [one] Takes it off { $n } picture; the tags under it move up
+   *[other] Takes it off { $n } pictures; the tags under it move up
+}
+tags-renamed = Renamed { $from } to { $to }
+tags-merged = Merged { $from } into { $to }
+tags-moved = Moved { $tag }
+tags-deleted = { $n ->
+    [one] Deleted { $tag } from { $n } picture
+   *[other] Deleted { $tag } from { $n } pictures
+}
+button-done = Done
+info-all-tags = All tags…
+info-all-tags-hint = The Tags dialog, with every tag of the library
+menu-manage-tags = Manage tags…
+bar-tags = Tags
+bar-tags-hint = Your tags: a click shows a tag's pictures
 tags-add = Add
 tags-proposed = Proposed:
 tags-proposed-hint = Add this tag (right-click: it does not fit)
@@ -502,7 +561,6 @@ bar-pick-hint = Pick / unpick (P)
 bar-reject-hint = Reject / unreject (X)
 bar-rotate-left = Rotate left (Ctrl+[)
 bar-rotate-right = Rotate right (Ctrl+])
-bar-tags = Tags and people
 bar-location = Set location: where these pictures were taken, on a map
 bar-to-album = To album
 bar-clear = Clear
@@ -1414,6 +1472,12 @@ root-inside = That folder is already in the library, as part of { $outer }.
 root-excluded = That folder is inside { $folder }, which is left out of the library.
 exclude-is-root = That is a library folder: remove it instead.
 exclude-outside = That folder is not inside a library folder.
+tag-empty-name = A tag needs a name.
+tag-no-comma = A tag can't contain a comma.
+tag-not-found = There is no tag { $tag }.
+tag-into-own-child = { $tag } is under { $from }: move it out first.
+tag-under-itself = A tag can't go under itself or a tag under it.
+tag-exists = There is a tag { $tag } already.
 library-folder-unreachable = the folder of the library, { $folder }, can't be reached
 library-not-a-folder = { $folder } is not a folder.
 library-none-there = There is no library in { $path }.

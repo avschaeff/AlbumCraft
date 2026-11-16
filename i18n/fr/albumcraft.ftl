@@ -61,12 +61,71 @@ new-album-adds = { $n ->
 new-album-create = Créer
 rename-album-rename = Renommer
 
-tags-intro = { $n ->
-    [one] À ajouter à la photo sélectionnée. Séparez les mots par des virgules.
-   *[other] À ajouter aux { $n } photos sélectionnées. Séparez les mots par des virgules.
-}
-tags-tags = Mots-clés :
 tags-people = Personnes :
+tags-intro = { $n ->
+    [one] Mots-clés de la photo sélectionnée. Les changements s'appliquent tout de suite.
+   *[other] Mots-clés des { $n } photos sélectionnées. Les changements s'appliquent tout de suite.
+}
+tags-type = Tapez un mot-clé, ou plusieurs séparés par des virgules
+tags-library = Vos mots-clés (un clic l'ajoute ou le retire) :
+tags-none-yet = Pas encore de mots-clés.
+tags-chip-remove = { $n ->
+    [one] Cliquer pour le retirer ({ $n } photo l'a)
+   *[other] Cliquer pour le retirer ({ $n } photos l'ont)
+}
+tags-chip-some = { $n ->
+    [one] Seulement certaines l'ont : cliquer pour le mettre sur toutes ({ $n } photo l'a)
+   *[other] Seulement certaines l'ont : cliquer pour le mettre sur toutes ({ $n } photos l'ont)
+}
+tags-chip-add = { $n ->
+    [one] Cliquer pour l'ajouter ({ $n } photo l'a)
+   *[other] Cliquer pour l'ajouter ({ $n } photos l'ont)
+}
+tags-more = +{ $n } autres : tapez pour les trouver
+tags-filter = Chercher un mot-clé…
+tags-manage = Gérer les mots-clés…
+tags-manage-title = Gérer les mots-clés
+tags-manage-intro = Choisissez un mot-clé à gauche pour le renommer, le fusionner avec un autre, le ranger sous un autre mot-clé ou le supprimer.
+tags-manage-note = Un mot-clé montre aussi les photos des mots-clés rangés sous lui. Les changements s'appliquent tout de suite.
+tags-new = Nouveau mot-clé
+tags-create = Créer
+tags-create-hint = Un mot-clé qu'aucune photo n'a encore, par exemple un groupe sous lequel ranger d'autres mots-clés
+tags-count = { $n ->
+    [one] { $n } photo
+   *[other] { $n } photos
+}
+tags-count-under = { $n ->
+    [one] { $n } photo, { $total } avec les mots-clés rangés dessous
+   *[other] { $n } photos, { $total } avec les mots-clés rangés dessous
+}
+tags-name = Nom
+tags-rename = Renommer
+tags-merge = Fusionner
+tags-merge-note = { $tag } existe déjà : les deux deviennent un seul mot-clé.
+tags-merge-into = Fusionner avec
+tags-merge-hint = Les photos marquées { $tag } reçoivent le mot-clé choisi à la place
+tags-choose = Choisir un mot-clé…
+tags-under = Rangé sous
+tags-top = (premier niveau)
+tags-show = Voir les photos
+tags-delete = Supprimer le mot-clé
+tags-delete-hint = { $n ->
+    [one] Le retire de { $n } photo ; les mots-clés rangés dessous remontent
+   *[other] Le retire de { $n } photos ; les mots-clés rangés dessous remontent
+}
+tags-renamed = { $from } renommé en { $to }
+tags-merged = { $from } fusionné avec { $to }
+tags-moved = { $tag } déplacé
+tags-deleted = { $n ->
+    [one] { $tag } retiré de { $n } photo
+   *[other] { $tag } retiré de { $n } photos
+}
+button-done = Terminé
+info-all-tags = Tous les mots-clés…
+info-all-tags-hint = La fenêtre Mots-clés, avec tous les mots-clés de la bibliothèque
+menu-manage-tags = Gérer les mots-clés…
+bar-tags = Mots-clés
+bar-tags-hint = Vos mots-clés : un clic montre les photos d'un mot-clé
 tags-add = Ajouter
 tags-proposed = Proposés :
 tags-proposed-hint = Ajouter ce mot-clé (clic droit : il ne convient pas)
@@ -497,7 +556,6 @@ bar-pick-hint = Choisir / ne plus choisir (P)
 bar-reject-hint = Rejeter / ne plus rejeter (X)
 bar-rotate-left = Pivoter à gauche (Ctrl+[)
 bar-rotate-right = Pivoter à droite (Ctrl+])
-bar-tags = Mots-clés et personnes
 bar-location = Définir le lieu : où ces photos ont été prises, sur une carte
 bar-to-album = Vers un album
 bar-clear = Effacer
@@ -1408,6 +1466,12 @@ root-inside = Ce dossier est déjà dans la bibliothèque, dans { $outer }.
 root-excluded = Ce dossier est dans { $folder }, qui est exclu de la bibliothèque.
 exclude-is-root = C’est un dossier de la bibliothèque : retirez-le plutôt.
 exclude-outside = Ce dossier n’est dans aucun dossier de la bibliothèque.
+tag-empty-name = Un mot-clé a besoin d'un nom.
+tag-no-comma = Un mot-clé ne peut pas contenir de virgule.
+tag-not-found = Il n'y a pas de mot-clé { $tag }.
+tag-into-own-child = { $tag } est rangé sous { $from } : sortez-le d'abord.
+tag-under-itself = Un mot-clé ne peut pas être rangé sous lui-même ni sous un mot-clé rangé sous lui.
+tag-exists = Le mot-clé { $tag } existe déjà.
 library-folder-unreachable = le dossier de la bibliothèque, { $folder }, est inaccessible
 library-not-a-folder = { $folder } n'est pas un dossier.
 library-none-there = Il n'y a pas de bibliothèque dans { $path }.

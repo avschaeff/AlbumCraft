@@ -61,12 +61,71 @@ new-album-adds = { $n ->
 new-album-create = Crear
 rename-album-rename = Cambiar nombre
 
-tags-intro = { $n ->
-    [one] Se añadirán a la foto seleccionada. Separe las palabras con comas.
-   *[other] Se añadirán a las { $n } fotos seleccionadas. Separe las palabras con comas.
-}
-tags-tags = Etiquetas:
 tags-people = Personas:
+tags-intro = { $n ->
+    [one] Etiquetas de la foto seleccionada. Los cambios se aplican al momento.
+   *[other] Etiquetas de las { $n } fotos seleccionadas. Los cambios se aplican al momento.
+}
+tags-type = Escriba una etiqueta, o varias separadas por comas
+tags-library = Sus etiquetas (un clic la pone o la quita):
+tags-none-yet = Aún no hay etiquetas.
+tags-chip-remove = { $n ->
+    [one] Clic para quitarla ({ $n } foto la tiene)
+   *[other] Clic para quitarla ({ $n } fotos la tienen)
+}
+tags-chip-some = { $n ->
+    [one] Solo algunas la tienen: clic para ponerla en todas ({ $n } foto la tiene)
+   *[other] Solo algunas la tienen: clic para ponerla en todas ({ $n } fotos la tienen)
+}
+tags-chip-add = { $n ->
+    [one] Clic para añadirla ({ $n } foto la tiene)
+   *[other] Clic para añadirla ({ $n } fotos la tienen)
+}
+tags-more = +{ $n } más: escriba para encontrarlas
+tags-filter = Buscar una etiqueta…
+tags-manage = Gestionar etiquetas…
+tags-manage-title = Gestionar etiquetas
+tags-manage-intro = Elija una etiqueta a la izquierda para cambiarle el nombre, unirla con otra, ponerla bajo otra etiqueta o eliminarla.
+tags-manage-note = Una etiqueta muestra también las fotos de las etiquetas que tiene debajo. Los cambios se aplican al momento.
+tags-new = Nueva etiqueta
+tags-create = Crear
+tags-create-hint = Una etiqueta que aún no tiene ninguna foto, por ejemplo un grupo para poner otras debajo
+tags-count = { $n ->
+    [one] { $n } foto
+   *[other] { $n } fotos
+}
+tags-count-under = { $n ->
+    [one] { $n } foto, { $total } con las etiquetas de debajo
+   *[other] { $n } fotos, { $total } con las etiquetas de debajo
+}
+tags-name = Nombre
+tags-rename = Cambiar nombre
+tags-merge = Unir
+tags-merge-note = { $tag } ya existe: las dos pasan a ser una sola etiqueta.
+tags-merge-into = Unir con
+tags-merge-hint = Las fotos con { $tag } reciben en su lugar la etiqueta elegida
+tags-choose = Elegir una etiqueta…
+tags-under = Debajo de
+tags-top = (nivel superior)
+tags-show = Ver las fotos
+tags-delete = Eliminar etiqueta
+tags-delete-hint = { $n ->
+    [one] La quita de { $n } foto; las etiquetas de debajo suben
+   *[other] La quita de { $n } fotos; las etiquetas de debajo suben
+}
+tags-renamed = { $from } se llama ahora { $to }
+tags-merged = { $from } unida con { $to }
+tags-moved = { $tag } movida
+tags-deleted = { $n ->
+    [one] { $tag } quitada de { $n } foto
+   *[other] { $tag } quitada de { $n } fotos
+}
+button-done = Hecho
+info-all-tags = Todas las etiquetas…
+info-all-tags-hint = La ventana Etiquetas, con todas las etiquetas de la biblioteca
+menu-manage-tags = Gestionar etiquetas…
+bar-tags = Etiquetas
+bar-tags-hint = Sus etiquetas: un clic muestra las fotos de una etiqueta
 tags-add = Añadir
 tags-proposed = Propuestas:
 tags-proposed-hint = Añadir esta etiqueta (clic derecho: no corresponde)
@@ -497,7 +556,6 @@ bar-pick-hint = Elegir / dejar de elegir (P)
 bar-reject-hint = Rechazar / dejar de rechazar (X)
 bar-rotate-left = Girar a la izquierda (Ctrl+[)
 bar-rotate-right = Girar a la derecha (Ctrl+])
-bar-tags = Etiquetas y personas
 bar-location = Definir el lugar: dónde se tomaron estas fotos, en un mapa
 bar-to-album = A un álbum
 bar-clear = Quitar
@@ -1408,6 +1466,12 @@ root-inside = Esta carpeta ya está en la biblioteca, dentro de { $outer }.
 root-excluded = That folder is inside { $folder }, which is left out of the library.
 exclude-is-root = That is a library folder: remove it instead.
 exclude-outside = That folder is not inside a library folder.
+tag-empty-name = Una etiqueta necesita un nombre.
+tag-no-comma = Una etiqueta no puede contener comas.
+tag-not-found = No hay ninguna etiqueta { $tag }.
+tag-into-own-child = { $tag } está debajo de { $from }: sáquela primero.
+tag-under-itself = Una etiqueta no puede ir debajo de sí misma ni de una etiqueta que tiene debajo.
+tag-exists = Ya hay una etiqueta { $tag }.
 library-folder-unreachable = no se puede acceder a la carpeta de la biblioteca, { $folder }
 library-not-a-folder = { $folder } no es una carpeta.
 library-none-there = No hay ninguna biblioteca en { $path }.

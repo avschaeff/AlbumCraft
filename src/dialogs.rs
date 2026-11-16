@@ -15,6 +15,12 @@ impl App {
             self.settings_dialog(ctx, section);
             return;
         }
+        // the tag manager too
+        if let Some(Dialog::ManageTags(_)) = &self.dialog {
+            let Some(Dialog::ManageTags(st)) = self.dialog.take() else { return };
+            self.tag_manager_dialog(ctx, st);
+            return;
+        }
         let Some(mut dialog) = self.dialog.take() else { return };
         let mut close = false;
         // Enter presses the main button of the dialogs that only ask for a name or an OK
@@ -37,6 +43,7 @@ impl App {
             Dialog::DeleteForever { .. } => tr!("dialog-delete-forever"),
             Dialog::LibraryThere { .. } => tr!("dialog-library-there"),
             Dialog::Settings { .. } => tr!("settings-title"),
+            Dialog::ManageTags(_) => tr!("tags-manage-title"),
         };
         let targets = self.targets();
         #[allow(deprecated)]
@@ -92,55 +99,67 @@ impl App {
                     });
                 }
                 Dialog::Tag { tags, people } => {
+                    // changes apply at once: the chips show what the pictures have now
+                    ui.set_width(460.0);
                     ui.label(tr!("tags-intro", n = targets.len()));
-                    egui::Grid::new("tagdlg").num_columns(2).show(ui, |ui| {
-                        ui.label(tr!("tags-tags"));
-                        ui.text_edit_singleline(tags);
-                        ui.end_row();
-                        ui.label(tr!("tags-people"));
-                        ui.text_edit_singleline(people);
-                        ui.end_row();
+                    ui.add_space(4.0);
+                    let split = |s: &str| -> Vec<String> { s.split(',').map(|t| t.trim().to_string()).filter(|t| !t.is_empty()).collect() };
+                    ui.horizontal(|ui| {
+                        let r = ui.add(egui::TextEdit::singleline(tags).hint_text(tr!("tags-type")).desired_width(340.0));
+                        r.request_focus();
+                        let typed = !tags.trim().is_empty();
+                        if (ui.add_enabled(typed, egui::Button::new(tr!("tags-add"))).clicked() || (enter && typed)) && typed {
+                            for t_ in split(tags) {
+                                self.set_tag(&targets, &t_, true);
+                            }
+                            tags.clear();
+                        } else if enter {
+                            close = true;
+                        }
                     });
-                    // proposed tags: a click puts one in the field
+                    // the library's tags, those containing what is typed (after the last comma)
+                    ui.add_space(6.0);
+                    ui.label(egui::RichText::new(tr!("tags-library")).size(12.0).color(t().text_weak));
+                    let filter = tags.rsplit(',').next().unwrap_or("").to_string();
+                    egui::ScrollArea::vertical().id_salt("tag-picker").max_height(190.0).show(ui, |ui| {
+                        self.tag_picker(ui, &targets, &filter, 300, false);
+                    });
+                    // proposed tags: a click puts one on the pictures
                     let (proposed, not) = self.proposal_chips(ui, &targets);
                     if let Some(tag) = proposed {
-                        let have = tags.split(',').any(|t| t.trim().eq_ignore_ascii_case(&tag));
-                        if !have {
-                            if !tags.trim().is_empty() {
-                                tags.push_str(", ");
-                            }
-                            tags.push_str(&tag);
-                        }
+                        self.set_tag(&targets, &tag, true);
                     }
                     if let Some(tag) = not {
                         self.not_this_tag(&targets, &tag);
                     }
-                    ui.add_space(4.0);
+                    ui.add_space(8.0);
                     ui.horizontal(|ui| {
-                        if ui.button(tr!("tags-add")).clicked() || enter {
-                            let split = |s: &str| -> Vec<String> {
-                                s.split(',').map(|t| t.trim().to_string()).filter(|t| !t.is_empty()).collect()
-                            };
-                            let (t, p) = (split(tags), split(people));
+                        ui.label(tr!("tags-people"));
+                        ui.add(egui::TextEdit::singleline(people).desired_width(250.0));
+                        if ui.add_enabled(!people.trim().is_empty(), egui::Button::new(tr!("tags-add"))).clicked() {
                             for &id in &targets {
                                 let m = self.meta_mut(id);
-                                for x in &t {
-                                    if !m.tags.contains(x) {
-                                        m.tags.push(x.clone());
-                                    }
-                                    m.not_tags.retain(|n| !n.eq_ignore_ascii_case(x));
-                                }
-                                for x in &p {
-                                    if !m.people.contains(x) {
-                                        m.people.push(x.clone());
+                                for x in split(people) {
+                                    if !m.people.contains(&x) {
+                                        m.people.push(x);
                                     }
                                 }
                             }
+                            people.clear();
+                        }
+                    });
+                    ui.add_space(6.0);
+                    ui.horizontal(|ui| {
+                        if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{}  {}", icons::TAG, tr!("tags-manage")), 13.5))).clicked() {
+                            self.open_tag_manager(None);
+                            // the manager takes this dialog's place
                             close = true;
                         }
-                        if ui.button(tr!("button-cancel")).clicked() {
-                            close = true;
-                        }
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if ui.button(tr!("button-done")).clicked() {
+                                close = true;
+                            }
+                        });
                     });
                 }
                 Dialog::Gallery { title } => {
@@ -410,8 +429,8 @@ impl App {
                         }
                     });
                 }
-                // drawn by `settings_dialog`, before this one
-                Dialog::Settings { .. } => close = true,
+                // drawn by `settings_dialog` and `tag_manager_dialog`, before this one
+                Dialog::Settings { .. } | Dialog::ManageTags(_) => close = true,
             }
         });
         // Esc, or a click beside the dialog: the same as Cancel

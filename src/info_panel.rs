@@ -10,12 +10,12 @@ use crate::icons;
 use crate::library::{fmt_bytes, fmt_date, fmt_time};
 use crate::theme::t;
 use eframe::egui::{self, RichText, Sense, Stroke};
-use std::sync::Arc;
 
 /// Width of the name column of the property tables.
 const NAME_W: f32 = 92.0;
 /// Most tag suggestions shown under the tag field.
-const MAX_SUGGESTIONS: usize = 8;
+/// How many of the library's tags the Tags section shows as chips (the Tags dialog has them all).
+const TAG_CHIPS: usize = 16;
 
 /// One "name  value" table row; nothing when the value is missing or empty.
 fn row(ui: &mut egui::Ui, name: &str, value: Option<String>) {
@@ -24,21 +24,6 @@ fn row(ui: &mut egui::Ui, name: &str, value: Option<String>) {
         name_cell(ui, name);
         ui.add(egui::Label::new(RichText::new(v).size(12.5).color(t().text)).wrap());
     });
-}
-
-/// Library tags containing `typed` (ignoring case) that the picture doesn't have, the ones that
-/// start with it first, at most MAX_SUGGESTIONS.
-fn suggest<'a>(all: &'a [String], typed: &str, have: &[String]) -> Vec<&'a String> {
-    let typed = typed.trim().to_lowercase();
-    if typed.is_empty() {
-        return vec![];
-    }
-    let mut out: Vec<&String> =
-        all.iter().filter(|t| t.to_lowercase().contains(&typed) && !have.iter().any(|h| h.eq_ignore_ascii_case(t))).collect();
-    // stable: alphabetical within each group
-    out.sort_by_key(|t| !t.to_lowercase().starts_with(&typed));
-    out.truncate(MAX_SUGGESTIONS);
-    out
 }
 
 /// The name column: left-aligned, fixed width.
@@ -88,21 +73,6 @@ impl App {
             return !open;
         }
         open
-    }
-
-    /// Every tag used in the library, sorted (cached until the notes change).
-    fn all_tags(&mut self) -> Arc<Vec<String>> {
-        if let Some((rev, tags)) = &self.tag_cache
-            && *rev == self.list_rev
-        {
-            return tags.clone();
-        }
-        let mut tags: Vec<String> = self.store.meta.values().flat_map(|m| m.tags.iter().cloned()).collect();
-        tags.sort_by_key(|t| t.to_lowercase());
-        tags.dedup();
-        let tags = Arc::new(tags);
-        self.tag_cache = Some((self.list_rev, tags.clone()));
-        tags
     }
 
     fn add_tag(&mut self, id: usize, tag: &str) {
@@ -325,21 +295,17 @@ impl App {
                 }
             }
         });
-        // tags of the library that start with (or contain) what is typed, not on this picture yet
-        if !self.edit.tag_buf.trim().is_empty() {
-            let all = self.all_tags();
-            let matches = suggest(&all, &self.edit.tag_buf, &tags);
-            if !matches.is_empty() {
-                ui.horizontal_wrapped(|ui| {
-                    ui.spacing_mut().item_spacing = egui::vec2(6.0, 6.0);
-                    for t_ in matches {
-                        if ui.add(egui::Button::new(RichText::new(format!("{}  {t_}", icons::ADD)).size(12.0)).corner_radius(12)).clicked() {
-                            add = Some(t_.clone());
-                        }
-                    }
-                });
+        // the library's tags (most used first; those containing what is typed): a click puts one
+        // on the picture or takes it off
+        self.tag_picker(ui, &[id], &self.edit.tag_buf.clone(), TAG_CHIPS, true);
+        ui.horizontal(|ui| {
+            if ui.add(egui::Button::new(RichText::new(tr!("info-all-tags")).size(12.0)).frame(false)).on_hover_text(tr!("info-all-tags-hint")).clicked() {
+                self.dialog = Some(crate::app::Dialog::Tag { tags: String::new(), people: String::new() });
             }
-        }
+            if ui.add(egui::Button::new(RichText::new(tr!("tags-manage")).size(12.0)).frame(false)).clicked() {
+                self.open_tag_manager(None);
+            }
+        });
         // proposed tags (when a search pack has analysed the picture)
         let (proposed, not) = self.proposal_chips(ui, &[id]);
         if let Some(tag) = not {
@@ -354,20 +320,3 @@ impl App {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn tag_suggestions() {
-        let all: Vec<String> = ["Beach", "Bordeaux", "Old town", "sea", "Sunset"].iter().map(|s| s.to_string()).collect();
-        let have = vec!["sea".to_string()];
-        let s: Vec<&str> = suggest(&all, "s", &have).iter().map(|t| t.as_str()).collect();
-        // starts with "s" first ("sea" is already on the picture), then the rest containing it
-        assert_eq!(s, vec!["Sunset"]);
-        let s: Vec<&str> = suggest(&all, "O", &have).iter().map(|t| t.as_str()).collect();
-        assert_eq!(s, vec!["Old town", "Bordeaux"]);
-        assert!(suggest(&all, "  ", &have).is_empty());
-        assert!(suggest(&all, "zz", &have).is_empty());
-    }
-}

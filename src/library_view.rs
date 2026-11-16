@@ -332,6 +332,10 @@ impl App {
             self.rescan();
             ui.close();
         }
+        if ui.button(tr!("menu-manage-tags")).clicked() {
+            self.open_tag_manager(None);
+            ui.close();
+        }
         ui.separator();
         if ui.add(egui::Button::new(tr!("menu-select-all")).shortcut_text("Ctrl+A")).clicked() {
             self.selection = self.visible_flat().into_iter().collect();

@@ -48,6 +48,9 @@ pub struct SidebarCounts {
     pub tree: Vec<crate::folder_tree::Node>,
 }
 
+/// Every tag with its number of pictures, most used first (tags_view.rs).
+pub type TagCounts = Arc<Vec<(String, usize)>>;
+
 /// What the library list depends on (its cache key).
 type ListKey = (u64, u64, Source, String, Vec<SearchTerm>, Filter, library::Sort, u64, (u64, usize));
 
@@ -133,6 +136,9 @@ pub enum Undo {
     Excluded(String),
     /// Files or folders moved or renamed on disk: (old path, new path).
     Moved(Vec<(String, String)>),
+    /// A change of the tag manager: the tags and "not this tag"s of the pictures it changed
+    /// (by key) and the tag hierarchy as they were.
+    Tags { meta: Vec<(String, Vec<String>, Vec<String>)>, parents: std::collections::BTreeMap<String, String> },
 }
 
 /// Background work the user watches: see `App::start_task`.
@@ -262,6 +268,8 @@ pub enum Dialog {
     OnlineMaps,
     /// The chosen folder for the library holds one already (`path`): open it instead?
     LibraryThere { folder: Option<PathBuf>, path: String },
+    /// The tag manager (`tags_view`).
+    ManageTags(crate::tags_view::ManageTags),
     /// The Settings dialog, showing this section (`settings_view`).
     Settings { section: crate::settings_view::SettingsSection },
 }
@@ -440,8 +448,11 @@ pub struct App {
     pub thumb_seen: HashMap<usize, f64>,
     /// Width / height of thumbnails that were forgotten (keeps the grid's layout steady).
     pub thumb_aspect: HashMap<usize, f32>,
-    /// Every tag of the library, sorted, and the `list_rev` it was made at (info panel).
-    pub tag_cache: Option<(u64, Arc<Vec<String>>)>,
+    /// Every tag with its count, most used first, and the tag tree (tags_view.rs), by `list_rev`.
+    pub tag_counts_cache: Option<(u64, TagCounts)>,
+    pub tag_tree_cache: Option<(u64, Arc<Vec<crate::tags::Node>>)>,
+    /// What is typed in the top bar's Tags popup.
+    pub tag_filter: String,
     pub thumb_failed: HashSet<usize>,
     /// Thumbnails to make again because their picture's edits changed (`refresh_thumb`).
     pub stale_thumbs: HashSet<usize>,
@@ -648,7 +659,9 @@ impl App {
             thumb_req: HashSet::new(),
             thumb_seen: HashMap::new(),
             thumb_aspect: HashMap::new(),
-            tag_cache: None,
+            tag_counts_cache: None,
+            tag_tree_cache: None,
+            tag_filter: String::new(),
             thumb_failed: HashSet::new(),
             stale_thumbs: HashSet::new(),
             thumb_budget: 0,
@@ -1080,7 +1093,7 @@ impl App {
 
     /// Whether a picture passes the filter and the search. `words` is the typed text in lower
     /// case, split; `hay` the text each picture is searched in (`search_hay`).
-    fn matches(&self, id: usize, words: &[String], hay: &[String]) -> bool {
+    fn matches(&self, id: usize, words: &[String], hay: &[String], families: &[HashSet<String>]) -> bool {
         let (flag, rating) = (self.flag(id), self.rating(id));
         let f = &self.filter;
         if (f.picks && flag != Flag::Pick) || rating < f.min_rating || (f.hide_rejects && flag == Flag::Reject) {
@@ -1090,9 +1103,13 @@ impl App {
             let m = self.meta(id);
             let Some(p) = self.photos.get(id) else { return false };
             let places = self.geo.place_terms.get(&p.key).map(|(_, _, w)| w.as_slice()).unwrap_or(&[]);
-            for term in &self.search_terms {
+            for (i, term) in self.search_terms.iter().enumerate() {
                 let ok = match term {
-                    SearchTerm::Tag(t) => m.is_some_and(|m| m.tags.iter().any(|x| x.eq_ignore_ascii_case(t))),
+                    // the tag or one under it (`tag_families`)
+                    SearchTerm::Tag(t) => m.is_some_and(|m| match families.get(i) {
+                        Some(f) => m.tags.iter().any(|x| f.contains(&crate::tags::key(x))),
+                        None => m.tags.iter().any(|x| x.eq_ignore_ascii_case(t)),
+                    }),
                     SearchTerm::Person(t) => m.is_some_and(|m| m.people.iter().any(|x| x.eq_ignore_ascii_case(t))),
                     SearchTerm::Place(t) => places.iter().any(|x| x.eq_ignore_ascii_case(t)),
                     // the ranking chooses those (looks_like.rs)
@@ -1164,7 +1181,8 @@ impl App {
     fn build_groups(&self) -> Vec<Group> {
         let words: Vec<String> = self.search.to_lowercase().split_whitespace().map(str::to_string).collect();
         let hay = if words.is_empty() { Rc::new(vec![]) } else { self.search_hay() };
-        let shown = |id: &usize| self.matches(*id, &words, &hay);
+        let families = self.tag_families();
+        let shown = |id: &usize| self.matches(*id, &words, &hay, &families);
         // pictures like a chosen one: only those, best first
         if matches!(self.smart_query(), Some(crate::smart_search::Query::Like(_))) {
             let ids = self.looks_like_ids(|id| self.in_source(id) && shown(&id)).unwrap_or_default();
@@ -1188,12 +1206,17 @@ impl App {
         if !words.is_empty() {
             let exact: HashSet<usize> = groups.iter().flat_map(|(_, v)| v.iter().copied()).collect();
             let no_words: Vec<String> = vec![];
-            let looks = self.looks_like_ids(|id| !exact.contains(&id) && self.in_source(id) && self.matches(id, &no_words, &hay));
+            let looks = self.looks_like_ids(|id| !exact.contains(&id) && self.in_source(id) && self.matches(id, &no_words, &hay, &families));
             if let Some(ids) = looks.filter(|v| !v.is_empty()) {
                 groups.push((Head::LooksLike, ids));
             }
         }
         groups
+    }
+
+    /// For each search term, the tags it finds (a tag term: it and the tags under it; others: none).
+    fn tag_families(&self) -> Vec<HashSet<String>> {
+        self.search_terms.iter().map(|t| if let SearchTerm::Tag(tag) = t { crate::tags::family(&self.store, tag) } else { HashSet::new() }).collect()
     }
 
     /// The picture belongs to what the list shows (the library, the album, the person, Picks).
@@ -1962,6 +1985,15 @@ impl App {
                 }
             }
             Undo::Moved(done) => self.move_back(done),
+            Undo::Tags { meta, parents } => {
+                for (key, tags, not_tags) in meta {
+                    let m = self.store.meta.entry(key).or_default();
+                    m.tags = tags;
+                    m.not_tags = not_tags;
+                }
+                self.store.tag_parents = parents;
+                self.dirty = true;
+            }
             Undo::Edits(list) => {
                 for (key, edits) in list {
                     if let Some(&id) = self.key_index.get(&key) {

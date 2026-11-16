@@ -61,12 +61,71 @@ new-album-adds = { $n ->
 new-album-create = Erstellen
 rename-album-rename = Umbenennen
 
-tags-intro = { $n ->
-    [one] Wird zum ausgewählten Foto hinzugefügt. Trennen Sie die Wörter mit Kommas.
-   *[other] Wird zu den { $n } ausgewählten Fotos hinzugefügt. Trennen Sie die Wörter mit Kommas.
-}
-tags-tags = Stichwörter:
 tags-people = Personen:
+tags-intro = { $n ->
+    [one] Stichwörter des ausgewählten Fotos. Änderungen gelten sofort.
+   *[other] Stichwörter der { $n } ausgewählten Fotos. Änderungen gelten sofort.
+}
+tags-type = Ein Stichwort eingeben, oder mehrere durch Kommas getrennt
+tags-library = Ihre Stichwörter (ein Klick fügt es hinzu oder entfernt es):
+tags-none-yet = Noch keine Stichwörter.
+tags-chip-remove = { $n ->
+    [one] Klicken zum Entfernen ({ $n } Foto hat es)
+   *[other] Klicken zum Entfernen ({ $n } Fotos haben es)
+}
+tags-chip-some = { $n ->
+    [one] Nur einige haben es: klicken, um es allen zu geben ({ $n } Foto hat es)
+   *[other] Nur einige haben es: klicken, um es allen zu geben ({ $n } Fotos haben es)
+}
+tags-chip-add = { $n ->
+    [one] Klicken zum Hinzufügen ({ $n } Foto hat es)
+   *[other] Klicken zum Hinzufügen ({ $n } Fotos haben es)
+}
+tags-more = +{ $n } weitere: tippen, um sie zu finden
+tags-filter = Stichwort suchen…
+tags-manage = Stichwörter verwalten…
+tags-manage-title = Stichwörter verwalten
+tags-manage-intro = Wählen Sie links ein Stichwort, um es umzubenennen, mit einem anderen zusammenzuführen, unter ein anderes einzuordnen oder zu löschen.
+tags-manage-note = Ein Stichwort zeigt auch die Fotos der darunter eingeordneten Stichwörter. Änderungen gelten sofort.
+tags-new = Neues Stichwort
+tags-create = Anlegen
+tags-create-hint = Ein Stichwort, das noch kein Foto hat, zum Beispiel eine Gruppe für andere Stichwörter
+tags-count = { $n ->
+    [one] { $n } Foto
+   *[other] { $n } Fotos
+}
+tags-count-under = { $n ->
+    [one] { $n } Foto, { $total } mit den Stichwörtern darunter
+   *[other] { $n } Fotos, { $total } mit den Stichwörtern darunter
+}
+tags-name = Name
+tags-rename = Umbenennen
+tags-merge = Zusammenführen
+tags-merge-note = { $tag } gibt es schon: beide werden ein Stichwort.
+tags-merge-into = Zusammenführen mit
+tags-merge-hint = Die Fotos mit { $tag } erhalten stattdessen das gewählte Stichwort
+tags-choose = Stichwort wählen…
+tags-under = Eingeordnet unter
+tags-top = (oberste Ebene)
+tags-show = Fotos zeigen
+tags-delete = Stichwort löschen
+tags-delete-hint = { $n ->
+    [one] Entfernt es von { $n } Foto; die Stichwörter darunter rücken auf
+   *[other] Entfernt es von { $n } Fotos; die Stichwörter darunter rücken auf
+}
+tags-renamed = { $from } in { $to } umbenannt
+tags-merged = { $from } mit { $to } zusammengeführt
+tags-moved = { $tag } verschoben
+tags-deleted = { $n ->
+    [one] { $tag } von { $n } Foto entfernt
+   *[other] { $tag } von { $n } Fotos entfernt
+}
+button-done = Fertig
+info-all-tags = Alle Stichwörter…
+info-all-tags-hint = Das Stichwort-Fenster mit allen Stichwörtern der Bibliothek
+menu-manage-tags = Stichwörter verwalten…
+bar-tags = Stichwörter
+bar-tags-hint = Ihre Stichwörter: ein Klick zeigt die Fotos eines Stichworts
 tags-add = Hinzufügen
 tags-proposed = Vorschläge:
 tags-proposed-hint = Dieses Stichwort hinzufügen (Rechtsklick: es passt nicht)
@@ -497,7 +556,6 @@ bar-pick-hint = Als Favorit markieren / Favorit entfernen (P)
 bar-reject-hint = Ablehnen / Ablehnung aufheben (X)
 bar-rotate-left = Nach links drehen (Strg+[)
 bar-rotate-right = Nach rechts drehen (Strg+])
-bar-tags = Stichwörter und Personen
 bar-location = Ort festlegen: wo diese Fotos aufgenommen wurden, auf einer Karte
 bar-to-album = In ein Album
 bar-clear = Aufheben
@@ -1408,6 +1466,12 @@ root-inside = Dieser Ordner ist bereits in der Bibliothek, in { $outer }.
 root-excluded = That folder is inside { $folder }, which is left out of the library.
 exclude-is-root = That is a library folder: remove it instead.
 exclude-outside = That folder is not inside a library folder.
+tag-empty-name = Ein Stichwort braucht einen Namen.
+tag-no-comma = Ein Stichwort darf kein Komma enthalten.
+tag-not-found = Es gibt kein Stichwort { $tag }.
+tag-into-own-child = { $tag } ist unter { $from } eingeordnet: zuerst herausnehmen.
+tag-under-itself = Ein Stichwort kann nicht unter sich selbst oder ein Stichwort darunter eingeordnet werden.
+tag-exists = Das Stichwort { $tag } gibt es schon.
 library-folder-unreachable = der Ordner der Bibliothek, { $folder }, ist nicht erreichbar
 library-not-a-folder = { $folder } ist kein Ordner.
 library-none-there = In { $path } gibt es keine Bibliothek.

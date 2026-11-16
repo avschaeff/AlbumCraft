@@ -157,6 +157,11 @@ impl App {
                 ui.allocate_ui_with_layout(egui::vec2(width + 52.0, 26.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
                     ui.spacing_mut().item_spacing.x = 4.0;
                     ui.label(RichText::new(icons::SEARCH).size(13.0).color(t().text_weak));
+                    // the chips share what the field and the clear button leave, their names cut
+                    // short when the bar is narrow (the box never grows over the buttons beside it)
+                    let field_min = if self.search_terms.is_empty() { 60.0 } else { 24.0 };
+                    let n = self.search_terms.len().max(1) as f32;
+                    let chip_max = ((ui.available_width() - field_min - 26.0) / n - 4.0).max(64.0);
                     for (i, term) in self.search_terms.iter().enumerate() {
                         let (icon, name) = match term {
                             SearchTerm::Tag(n) => (icons::TAG, n),
@@ -167,8 +172,12 @@ impl App {
                                 (icons::SEARCH, &tr!("search-like-chip", name = name))
                             }
                         };
-                        let chip = egui::Button::new(RichText::new(format!("{icon} {name} {}", icons::CLOSE)).size(12.0)).fill(t().select_bg).corner_radius(10);
-                        if ui.add(chip).on_hover_text(tr!("search-remove-hint")).clicked() {
+                        let chip = egui::Button::new(RichText::new(format!("{icon} {name} {}", icons::CLOSE)).size(12.0)).fill(t().select_bg).corner_radius(10).truncate();
+                        let clicked = ui.scope(|ui| {
+                            ui.set_max_width(chip_max);
+                            ui.add(chip).on_hover_text(format!("{name}\n{}", tr!("search-remove-hint"))).clicked()
+                        });
+                        if clicked.inner {
                             remove = Some(i);
                         }
                     }
@@ -178,7 +187,7 @@ impl App {
                             .id(field_id)
                             .hint_text(hint)
                             .frame(egui::Frame::NONE)
-                            .desired_width((ui.available_width() - 22.0).max(60.0)),
+                            .desired_width((ui.available_width() - 22.0).max(field_min)),
                     );
                     if r.changed() {
                         self.selection.clear();
