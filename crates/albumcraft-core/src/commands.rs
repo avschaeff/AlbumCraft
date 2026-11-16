@@ -254,7 +254,7 @@ pub fn specs() -> Vec<Spec> {
                     "folder": { "type": "string", "description": "Folder path (as in list_folders)" },
                     "album": { "type": "string", "description": "Album name" },
                     "person": { "type": "string" },
-                    "tag": { "type": "string", "description": "Only pictures with this tag (any letter case)" },
+                    "tag": { "type": "string", "description": "Only pictures with this tag or a tag under it in the tag hierarchy (any letter case)" },
                     "place": { "type": "string", "description": "Only pictures whose place, nearest city, region or country contains this, e.g. \"Scotland\"" },
                     "flag": { "type": "string", "enum": ["pick", "reject", "none"] },
                     "min_rating": { "type": "integer", "minimum": 0, "maximum": 5 },
@@ -573,6 +573,21 @@ Call `rescan` afterwards to see the new pictures in the library.",
             schema: || keys_schema(json!({ "back_to_file": { "type": "boolean", "default": false, "required": false } })),
         },
         Spec {
+            name: "list_tags",
+            description: "Every tag of the library as a tree (the tag hierarchy: a tag under another, e.g. Church under Buildings), with how many pictures have each tag itself and with the tags under it. Searching for a tag also finds the pictures of the tags under it.",
+            schema: || json!({ "type": "object", "properties": {} }),
+        },
+        Spec {
+            name: "edit_tag",
+            description: "Change a tag for the whole library, as the tag manager does: rename it (renaming to an existing tag merges the two: every picture gets that tag instead), put it under another tag (`parent`; \"\" for the top level; a parent that is no tag yet is created), or delete it from every picture (`delete: true`; the tags under it move up). One change per call; the user can't undo it from the window, so say what you did.",
+            schema: || json!({ "type": "object", "properties": {
+                "tag": { "type": "string", "description": "The tag to change (any letter case)" },
+                "rename_to": { "type": "string", "description": "New name, or an existing tag to merge into" },
+                "parent": { "type": "string", "description": "The tag to put it under; empty for the top level" },
+                "delete": { "type": "boolean", "description": "Take the tag off every picture" }
+            }, "required": ["tag"] }),
+        },
+        Spec {
             name: "ai_status",
             description: "The AI features (faces, smart search, tag proposals; everything is computed on the user's computer): whether this build can run networks, the packs of networks that can be downloaded with their size, licence and whether they are installed, and how far the background analysis of the library is (only while the AlbumCraft window is open).",
             schema: || json!({ "type": "object", "properties": {} }),
@@ -880,6 +895,8 @@ pub fn run(host: &mut dyn Host, name: &str, args: &Value) -> Result<Outcome, Str
                 }
             };
             let tag = opt_str(args, "tag").map(str::trim).filter(|t| !t.is_empty());
+            // the tag and the tags under it (`tags::family`)
+            let tag_family = tag.map(|t| crate::tags::family(host.store(), t));
             let place_q = opt_str(args, "place").map(geo::fold).filter(|t| !t.trim().is_empty());
             let query = opt_str(args, "query").unwrap_or("").to_lowercase();
             // positions only when asked for (looking at every file can take a while)
@@ -915,7 +932,7 @@ pub fn run(host: &mut dyn Host, name: &str, args: &Value) -> Result<Outcome, Str
                     if flag.is_some_and(|f| m.map(|m| m.flag).unwrap_or_default() != f) || m.map(|m| m.rating).unwrap_or(0) < min_rating {
                         return false;
                     }
-                    if tag.is_some_and(|t| !m.is_some_and(|m| m.tags.iter().any(|x| x.eq_ignore_ascii_case(t)))) {
+                    if tag_family.as_ref().is_some_and(|f| !m.is_some_and(|m| m.tags.iter().any(|x| f.contains(&crate::tags::key(x))))) {
                         return false;
                     }
                     let at = located.as_ref().and_then(|l| l.get(id).copied().flatten());
@@ -996,6 +1013,35 @@ pub fn run(host: &mut dyn Host, name: &str, args: &Value) -> Result<Outcome, Str
             let name = opt_str(args, "name").unwrap_or("");
             set_place(host, &ids, Some(Place::set(at, name)));
             now(json!({ "changed": ids.len(), "place": geo::describe(Some(&Place::set(at, name)), at) }))
+        }
+        "list_tags" => {
+            fn node(n: &crate::tags::Node) -> Value {
+                json!({ "tag": n.name, "pictures": n.own, "with_tags_under": n.total, "under": n.children.iter().map(node).collect::<Vec<_>>() })
+            }
+            now(json!({ "tags": crate::tags::tree(host.store()).iter().map(node).collect::<Vec<_>>() }))
+        }
+        "edit_tag" => {
+            let tag = str_arg(args, "tag")?.trim().to_string();
+            let rename_to = opt_str(args, "rename_to").map(str::trim).filter(|t| !t.is_empty()).map(str::to_string);
+            let parent = opt_str(args, "parent").map(|p| p.trim().to_string());
+            let delete = opt_bool(args, "delete")?.unwrap_or(false);
+            if [rename_to.is_some(), parent.is_some(), delete].iter().filter(|b| **b).count() != 1 {
+                return Err("give one of `rename_to`, `parent` or `delete: true`".into());
+            }
+            if !crate::tags::counts(host.store()).contains_key(&crate::tags::key(&tag)) {
+                return Err(format!("there is no tag {tag:?} (see list_tags)"));
+            }
+            if delete {
+                let changed = crate::tags::delete(host.store_mut(), &tag);
+                return now(json!({ "deleted": tag, "pictures_changed": changed.len() }));
+            }
+            if let Some(to) = rename_to {
+                let changed = crate::tags::rename(host.store_mut(), &tag, &to)?;
+                return now(json!({ "renamed": tag, "to": to, "pictures_changed": changed.len() }));
+            }
+            let parent = parent.filter(|p| !p.is_empty());
+            crate::tags::set_parent(host.store_mut(), &tag, parent.as_deref())?;
+            now(json!({ "tag": tag, "under": parent }))
         }
         "remove_location" => {
             let ids = ids(host, args)?;
@@ -1844,7 +1890,7 @@ impl Host for Headless {
 pub fn read_only(name: &str) -> bool {
     matches!(
         name,
-        "library_info" | "list_folders" | "search_photos" | "get_photo" | "render_preview" | "export" | "make_gallery" | "make_movie" | "show_photo" | "show_on_map" | "find_place" | "semantic_search" | "similar_pictures" | "propose_tags" | "ai_status"
+        "library_info" | "list_folders" | "search_photos" | "get_photo" | "render_preview" | "export" | "make_gallery" | "make_movie" | "show_photo" | "show_on_map" | "find_place" | "semantic_search" | "similar_pictures" | "propose_tags" | "ai_status" | "list_tags"
     )
 }
 
@@ -2146,6 +2192,9 @@ mod tests {
             ("search_photos", json!({ "near": { "latitude": 10, "longitude": 0, "radius_km": -1 } })),
             ("search_photos", json!({ "has_location": "yes" })),
             ("find_place", json!({})),
+            ("edit_tag", json!({ "tag": "nothing", "delete": true })),
+            ("edit_tag", json!({ "tag": "x" })),
+            ("edit_tag", json!({ "tag": "x", "rename_to": "y", "delete": true })),
             ("remove_location", json!({ "keys": [k], "back_to_file": 1 })),
             ("make_collage", json!({ "keys": [k], "path": dir.join("c.jpg").to_string_lossy() })),
             ("make_collage", json!({ "keys": keys, "path": dir.join("c.gif").to_string_lossy() })),
@@ -2159,6 +2208,21 @@ mod tests {
         for (name, args) in bad {
             assert!(run(&mut h, name, &args).and_then(|o| o.finish()).is_err(), "{name} {args} should fail");
         }
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn tags_as_a_tree() {
+        let (dir, mut h, keys) = fixture("tags");
+        for (k, t) in keys.iter().zip(["church", "Cathedral", "sea"]) {
+            h.store.meta.entry(k.clone()).or_default().tags = vec![t.to_string()];
+        }
+        call(&mut h, "edit_tag", json!({ "tag": "cathedral", "rename_to": "Church" })).unwrap();
+        call(&mut h, "edit_tag", json!({ "tag": "church", "parent": "Buildings" })).unwrap();
+        let t = call(&mut h, "list_tags", json!({})).unwrap();
+        let b = t["tags"].as_array().unwrap().iter().find(|n| n["tag"] == "Buildings").unwrap().clone();
+        assert_eq!((b["pictures"].as_u64(), b["with_tags_under"].as_u64()), (Some(0), Some(2)));
+        assert_eq!(call(&mut h, "search_photos", json!({ "tag": "buildings" })).unwrap()["total"], 2);
         let _ = std::fs::remove_dir_all(&dir);
     }
 

@@ -61,12 +61,71 @@ new-album-adds = { $n ->
 new-album-create = Crea
 rename-album-rename = Rinomina
 
-tags-intro = { $n ->
-    [one] Da aggiungere alla foto selezionata. Separa le parole con virgole.
-   *[other] Da aggiungere alle { $n } foto selezionate. Separa le parole con virgole.
-}
-tags-tags = Tag:
 tags-people = Persone:
+tags-intro = { $n ->
+    [one] Tag della foto selezionata. Le modifiche valgono subito.
+   *[other] Tag delle { $n } foto selezionate. Le modifiche valgono subito.
+}
+tags-type = Scrivi un tag, o più tag separati da virgole
+tags-library = I tuoi tag (un clic lo aggiunge o lo toglie):
+tags-none-yet = Ancora nessun tag.
+tags-chip-remove = { $n ->
+    [one] Clic per toglierlo ({ $n } foto lo ha)
+   *[other] Clic per toglierlo ({ $n } foto lo hanno)
+}
+tags-chip-some = { $n ->
+    [one] Solo alcune lo hanno: clic per metterlo su tutte ({ $n } foto lo ha)
+   *[other] Solo alcune lo hanno: clic per metterlo su tutte ({ $n } foto lo hanno)
+}
+tags-chip-add = { $n ->
+    [one] Clic per aggiungerlo ({ $n } foto lo ha)
+   *[other] Clic per aggiungerlo ({ $n } foto lo hanno)
+}
+tags-more = +{ $n } altri: scrivi per trovarli
+tags-filter = Cerca un tag…
+tags-manage = Gestisci i tag…
+tags-manage-title = Gestisci i tag
+tags-manage-intro = Scegli un tag a sinistra per rinominarlo, unirlo a un altro, metterlo sotto un altro tag o eliminarlo.
+tags-manage-note = Un tag mostra anche le foto dei tag che stanno sotto di lui. Le modifiche valgono subito.
+tags-new = Nuovo tag
+tags-create = Crea
+tags-create-hint = Un tag che nessuna foto ha ancora, per esempio un gruppo sotto cui mettere altri tag
+tags-count = { $n ->
+    [one] { $n } foto
+   *[other] { $n } foto
+}
+tags-count-under = { $n ->
+    [one] { $n } foto, { $total } con i tag sottostanti
+   *[other] { $n } foto, { $total } con i tag sottostanti
+}
+tags-name = Nome
+tags-rename = Rinomina
+tags-merge = Unisci
+tags-merge-note = { $tag } esiste già: i due diventano un solo tag.
+tags-merge-into = Unisci a
+tags-merge-hint = Le foto con { $tag } ricevono invece il tag scelto
+tags-choose = Scegli un tag…
+tags-under = Sotto
+tags-top = (livello principale)
+tags-show = Mostra le foto
+tags-delete = Elimina il tag
+tags-delete-hint = { $n ->
+    [one] Lo toglie da { $n } foto; i tag sottostanti salgono
+   *[other] Lo toglie da { $n } foto; i tag sottostanti salgono
+}
+tags-renamed = { $from } rinominato in { $to }
+tags-merged = { $from } unito a { $to }
+tags-moved = { $tag } spostato
+tags-deleted = { $n ->
+    [one] { $tag } tolto da { $n } foto
+   *[other] { $tag } tolto da { $n } foto
+}
+button-done = Fatto
+info-all-tags = Tutti i tag…
+info-all-tags-hint = La finestra Tag, con tutti i tag della libreria
+menu-manage-tags = Gestisci i tag…
+bar-tags = Tag
+bar-tags-hint = I tuoi tag: un clic mostra le foto di un tag
 tags-add = Aggiungi
 tags-proposed = Proposti:
 tags-proposed-hint = Aggiungi questo tag (clic destro: non è adatto)
@@ -497,7 +556,6 @@ bar-pick-hint = Scegli / rimuovi dalle scelte (P)
 bar-reject-hint = Scarta / non scartare più (X)
 bar-rotate-left = Ruota a sinistra (Ctrl+[)
 bar-rotate-right = Ruota a destra (Ctrl+])
-bar-tags = Tag e persone
 bar-location = Imposta il luogo: dove sono state scattate queste foto, su una mappa
 bar-to-album = In un album
 bar-clear = Annulla
@@ -1408,6 +1466,12 @@ root-inside = Questa cartella è già nella libreria, dentro { $outer }.
 root-excluded = That folder is inside { $folder }, which is left out of the library.
 exclude-is-root = That is a library folder: remove it instead.
 exclude-outside = That folder is not inside a library folder.
+tag-empty-name = Un tag ha bisogno di un nome.
+tag-no-comma = Un tag non può contenere virgole.
+tag-not-found = Non c'è nessun tag { $tag }.
+tag-into-own-child = { $tag } sta sotto { $from }: spostalo fuori prima.
+tag-under-itself = Un tag non può stare sotto se stesso o sotto un tag che ha sotto di sé.
+tag-exists = Il tag { $tag } esiste già.
 library-folder-unreachable = la cartella della libreria, { $folder }, non è raggiungibile
 library-not-a-folder = { $folder } non è una cartella.
 library-none-there = Non c'è nessuna libreria in { $path }.

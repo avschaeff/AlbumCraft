@@ -401,6 +401,29 @@ impl App {
             }
             self.dialog = Some(Dialog::Settings { section: crate::settings_view::SettingsSection::Ai });
         }
+        if matches!(shot_view.as_str(), "tags" | "managetags" | "tagged") {
+            // tags on the samples, two near-duplicates (Church / Cathedral) and a small hierarchy
+            let sets: [&[&str]; 6] = [&["Sea", "Sunset"], &["Beach", "Sea"], &["Mountains"], &["Church"], &["Cathedral", "Old town"], &["Garden", "Flowers"]];
+            for (i, p) in self.photos.iter().enumerate() {
+                let tags = sets[i % sets.len()];
+                self.store.meta.entry(p.key.clone()).or_default().tags = tags.iter().map(|t| t.to_string()).collect();
+            }
+            for group in ["Nature", "Buildings"] {
+                let _ = crate::tags::create(&mut self.store, group, None);
+            }
+            for (tag, parent) in [("Sea", "Nature"), ("Mountains", "Nature"), ("Garden", "Nature"), ("Flowers", "Garden"), ("Church", "Buildings")] {
+                let _ = crate::tags::set_parent(&mut self.store, tag, Some(parent));
+            }
+            self.list_rev += 1;
+            match shot_view.as_str() {
+                // three pictures selected: some tags on all, some on a few
+                "tags" => self.dialog = Some(Dialog::Tag { tags: String::new(), people: String::new() }),
+                // Cathedral chosen, "Church" typed as its new name: the merge it would be
+                "managetags" => self.dialog = Some(Dialog::ManageTags(crate::tags_view::ManageTags { selected: Some("Cathedral".into()), name: "Church".into(), ..Default::default() })),
+                // the pictures of a parent tag (and of the tags under it)
+                _ => self.search_terms = vec![SearchTerm::Tag("Nature".into())],
+            }
+        }
         if shot_view == "maps" {
             self.dialog = Some(Dialog::OnlineMaps);
         }
