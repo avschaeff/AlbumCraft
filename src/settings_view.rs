@@ -490,7 +490,23 @@ impl App {
             };
             ui.label(RichText::new(why).color(t().bad));
         }
+        ui.add_space(6.0);
+        if ui.checkbox(&mut self.store.ai_enabled, RichText::new(tr!("settings-ai-enable")).strong()).on_hover_text(tr!("settings-ai-enable-hint")).changed() {
+            self.dirty = true;
+            // at once rather than at the next look (every 2 s)
+            self.smart.recheck();
+            if !self.store.ai_enabled {
+                self.analysis = Default::default();
+            }
+        }
+        if !self.store.ai_enabled {
+            note(ui, &tr!("settings-ai-off-note"));
+        }
+        let on = self.store.ai_enabled;
+        ui.add_enabled_ui(on, |ui| self.settings_ai_body(ui));
+    }
 
+    fn settings_ai_body(&mut self, ui: &mut egui::Ui) {
         group(ui, &tr!("settings-ai-networks"));
         let now = ui.input(|i| i.time);
         if now - self.packs_at > 1.0 {

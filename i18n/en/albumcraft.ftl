@@ -244,6 +244,9 @@ settings-ai-networks = Networks
 # $size is like "12.5 MB"
 settings-ai-pack-size = { $size }  ·  licence: { $licence }
 settings-ai-remove = Remove
+settings-ai-enable = Use the AI features
+settings-ai-enable-hint = Background analysis of the library, smart search, More like this and tag proposals
+settings-ai-off-note = The AI features are off: no network is loaded or run, and the library is not analysed. Downloaded networks and what was already found stay on this computer.
 settings-ai-other-kept = { $pack } is still on this computer ({ $size })
 settings-ai-remove-hint = Remove the networks from this computer. What was found in your pictures is kept.
 settings-ai-downloaded = Downloaded

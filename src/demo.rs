@@ -383,6 +383,11 @@ impl App {
                 crate::analysis::PackState { pack: search("search-multilingual", "Smart search: Multilingual", "Find pictures by describing them, in your language.", "Apache 2.0", 511 << 20), installed: false },
             ];
             self.packs_at = f64::INFINITY;
+            // ALBUMCRAFT_SHOT_AI_OFF=1: the AI features turned off
+            self.store.ai_enabled = std::env::var("ALBUMCRAFT_SHOT_AI_OFF").is_err();
+            if !self.store.ai_enabled {
+                self.analysis = Default::default();
+            }
             self.dialog = Some(Dialog::Settings { section: crate::settings_view::SettingsSection::Ai });
         }
         if shot_view == "maps" {

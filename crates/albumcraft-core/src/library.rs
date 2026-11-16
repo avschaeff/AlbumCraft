@@ -257,6 +257,9 @@ pub struct Store {
     /// The Export dialog's starting size (longest side in pixels, 0 = original) and JPEG quality.
     pub export_size: u32,
     pub export_quality: u8,
+    /// The AI features are on (Settings › AI features): background analysis, smart search,
+    /// More like this, tag proposals. Off: no network is loaded or run.
+    pub ai_enabled: bool,
     /// The user paused the background analysis of the library (AI features).
     pub analysis_paused: bool,
     /// The search pack the user chose (a pack id); empty: Multilingual (`smart_search::DEFAULT_PACK`).
@@ -322,6 +325,7 @@ impl Default for Store {
             export_size: 0,
             export_quality: 90,
             analysis_paused: false,
+            ai_enabled: true,
             search_pack: String::new(),
             gallery: Default::default(),
             check_updates: true,
