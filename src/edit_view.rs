@@ -479,7 +479,9 @@ impl App {
             if !enabled {
                 continue;
             }
-            egui::Area::new(egui::Id::new(("edit_nav", delta)))
+            #[allow(deprecated)] // egui::Id::new, as used elsewhere in this crate
+            let area = egui::Area::new(egui::Id::new(if delta < 0 { "edit_nav_previous" } else { "edit_nav_next" }));
+            area
                 .order(egui::Order::Foreground)
                 .fixed_pos(Pos2::new(x, canvas.center().y - size / 2.0))
                 .show(ctx, |ui| {
