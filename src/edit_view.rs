@@ -332,23 +332,34 @@ impl App {
             .frame(egui::Frame::new().fill(t().toolbar_bg).inner_margin(egui::Margin::symmetric(8, 6)).stroke(Stroke::new(1.0, t().border)))
             .show(ui, |ui| {
                 crate::theme::panel_gradient(ui, egui::Margin::symmetric(8, 6), t().band_top, t().band_bottom);
+                // What the buttons on the right need (two more with two halves shown). When the
+                // window is narrower, the left side gives way first (the path, then the Back
+                // label) and then the labels of Info and Slideshow, so nothing overlaps.
+                let right_need = 580.0 + if self.edit.compare != CompareMode::Single { 70.0 } else { 0.0 };
+                let room = ui.available_width();
+                let back_label = room >= right_need + 300.0;
+                let tight = room < right_need + 60.0;
                 ui.horizontal(|ui| {
-                    if ui.add(egui::Button::new(RichText::new(format!("{}  {}", icons::ARROW_BACK, tr!("edit-back"))).strong()).min_size(egui::vec2(0.0, 28.0))).clicked() {
+                    let back_text = if back_label { format!("{}  {}", icons::ARROW_BACK, tr!("edit-back")) } else { icons::ARROW_BACK.to_string() };
+                    if ui.add(egui::Button::new(RichText::new(back_text).strong()).min_size(egui::vec2(0.0, 28.0))).on_hover_text(tr!("edit-back")).clicked() {
                         self.edit_go(PendingLeave::Library);
                     }
                     ui.separator();
                     let p = &self.photos[id];
-                    // folder › file name, cut short when the buttons on the right need the room
-                    let mut crumb = egui::text::LayoutJob::default();
-                    crumb.append(&self.folders[p.folder].name, 0.0, egui::TextFormat::simple(egui::FontId::proportional(14.0), ui.visuals().strong_text_color()));
-                    crumb.append(&format!("  ›  {}", p.name), 0.0, egui::TextFormat::simple(egui::FontId::proportional(13.0), t().text_weak));
-                    let crumb_w = (ui.available_width() - 580.0).clamp(60.0, 700.0);
-                    ui.allocate_ui_with_layout(egui::vec2(crumb_w, 22.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                        ui.add(egui::Label::new(crumb).truncate());
-                    });
+                    // folder › file name, only in the room the buttons on the right leave
+                    let crumb_w = (ui.available_width() - right_need).min(700.0);
+                    if crumb_w >= 100.0 {
+                        let mut crumb = egui::text::LayoutJob::default();
+                        crumb.append(&self.folders[p.folder].name, 0.0, egui::TextFormat::simple(egui::FontId::proportional(14.0), ui.visuals().strong_text_color()));
+                        crumb.append(&format!("  ›  {}", p.name), 0.0, egui::TextFormat::simple(egui::FontId::proportional(13.0), t().text_weak));
+                        ui.allocate_ui_with_layout(egui::vec2(crumb_w, 22.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                            ui.add(egui::Label::new(crumb).truncate());
+                        });
+                    }
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        let info_text = if tight { icons::INFO.to_string() } else { format!("{} {}", icons::INFO, tr!("edit-info")) };
                         if ui
-                            .selectable_label(self.store.info_open, format!("{} {}", icons::INFO, tr!("edit-info")))
+                            .selectable_label(self.store.info_open, info_text)
                             .on_hover_text(tr!("edit-info-hint"))
                             .clicked()
                         {
@@ -392,7 +403,8 @@ impl App {
                             self.edit.show_original = true;
                         }
                         ui.separator();
-                        if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), format!("{} {}", icons::PLAY, tr!("edit-slideshow")), 13.5))).clicked() {
+                        let show_text = if tight { icons::PLAY.to_string() } else { format!("{} {}", icons::PLAY, tr!("edit-slideshow")) };
+                        if ui.add(egui::Button::new(crate::color_icons::atoms(ui.ctx(), show_text, 13.5))).on_hover_text(tr!("edit-slideshow")).clicked() {
                             let list = self.edit.list.clone();
                             self.start_slideshow(list, id);
                         }
@@ -558,7 +570,11 @@ impl App {
                 });
 
                 match self.edit.tab {
-                    Tab::Edit => self.edit_tab(ui),
+                    // the basic tools scroll when the window is too low for them (Advanced has its own)
+                    Tab::Edit if self.edit.advanced && self.edit.tool == Tool::None => self.edit_tab(ui),
+                    Tab::Edit => {
+                        egui::ScrollArea::vertical().id_salt("edit_basic").auto_shrink([false, false]).show(ui, |ui| self.edit_tab(ui));
+                    }
                     Tab::Presets => self.presets_tab(ui),
                     Tab::Effects => self.effects_tab(ui),
                 }
