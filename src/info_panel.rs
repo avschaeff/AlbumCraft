@@ -92,11 +92,15 @@ impl App {
         let id = self.edit.id;
         let Some(p) = self.photos.get(id).cloned() else { return };
         let mut close = false;
+        // Never wider than the room left beside the tools panel (keeping a strip of picture),
+        // so a narrow window does not push the panel's content out of its frame.
+        let room = (ui.available_width() - 120.0).max(180.0);
+        let max_w = room.min(480.0);
         egui::Panel::right("info")
             .resizable(true)
-            .default_size(300.0)
-            .min_size(240.0)
-            .max_size(480.0)
+            .default_size(300.0_f32.min(max_w))
+            .min_size(180.0_f32.min(max_w))
+            .max_size(max_w)
             .frame(egui::Frame::new().fill(t().surface).inner_margin(egui::Margin::symmetric(14, 8)).stroke(Stroke::new(1.0, t().border)))
             .show(ui, |ui| {
                 ui.horizontal(|ui| {
@@ -284,11 +288,15 @@ impl App {
         }
         ui.add_space(2.0);
         let mut add: Option<String> = None;
-        ui.horizontal(|ui| {
-            let field = egui::TextEdit::singleline(&mut self.edit.tag_buf).hint_text(tr!("info-add-tag")).desired_width(ui.available_width() - 60.0);
+        // the button first, from the right, so the field takes what is left whatever the
+        // button's width in this language
+        let row_size = egui::vec2(ui.available_width(), ui.spacing().interact_size.y);
+        ui.allocate_ui_with_layout(row_size, egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            let button =ui.add_enabled(!self.edit.tag_buf.trim().is_empty(), egui::Button::new(tr!("tags-add"))).clicked();
+            let field = egui::TextEdit::singleline(&mut self.edit.tag_buf).hint_text(tr!("info-add-tag")).desired_width(ui.available_width());
             let r = ui.add(field);
             let enter = r.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
-            if (ui.add_enabled(!self.edit.tag_buf.trim().is_empty(), egui::Button::new(tr!("tags-add"))).clicked() || enter) && !self.edit.tag_buf.trim().is_empty() {
+            if (button || enter) && !self.edit.tag_buf.trim().is_empty() {
                 add = Some(self.edit.tag_buf.trim().to_string());
                 if enter {
                     r.request_focus();
