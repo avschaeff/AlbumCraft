@@ -1,0 +1,28 @@
+{
+  // Ctrl+F5 (Run Without Debugging) / F5: builds and starts AlbumCraft in a terminal.
+  // It needs no debugger extension. This machine has no MSVC linker, so the GNU toolchain is
+  // used, with MinGW from MSYS2 on the PATH (see CLAUDE.md). onnx-dynamic: the AI features load
+  // onnxruntime.dll from beside the program (target/release).
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node-terminal",
+      "request": "launch",
+      "name": "AlbumCraft (release)",
+      "cwd": "${workspaceFolder}",
+      "command": "cargo +stable-x86_64-pc-windows-gnu run --release --features onnx-dynamic",
+      "env": { "PATH": "C:\\msys64\\ucrt64\\bin;${env:PATH}" }
+    },
+    {
+      "type": "node-terminal",
+      "request": "launch",
+      "name": "AlbumCraft (dev)",
+      "cwd": "${workspaceFolder}",
+      "command": "cargo +stable-x86_64-pc-windows-gnu run --features onnx-dynamic",
+      "env": {
+        "PATH": "C:\\msys64\\ucrt64\\bin;${env:PATH}",
+        "ORT_DYLIB_PATH": "${workspaceFolder}\\target\\release\\onnxruntime.dll"
+      }
+    }
+  ]
+}
