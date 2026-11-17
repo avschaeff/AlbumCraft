@@ -33,3 +33,9 @@ tokenizers = { version = "0.22", default-features = false, features = ["fancy-re
 # building (none exist for Windows with the GNU toolchain: the feature does nothing there).
 [target.'cfg(not(all(windows, target_env = "gnu")))'.dependencies]
 ort = { version = "=2.0.0-rc.15", optional = true, default-features = false, features = ["std", "download-binaries", "tls-rustls"] }
+
+# With the GNU toolchain on Windows nothing can be linked, but the library file can still be
+# loaded at run time: `ort` is there for `onnx-dynamic` only (no prebuilt library is downloaded;
+# `onnxruntime.dll` goes beside the program, see `runtime`).
+[target.'cfg(all(windows, target_env = "gnu"))'.dependencies]
+ort = { version = "=2.0.0-rc.15", optional = true, default-features = false, features = ["std"] }

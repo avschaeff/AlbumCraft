@@ -94,7 +94,8 @@ pub fn missing_library() -> Option<String> {
     imp::missing_library()
 }
 
-#[cfg(all(feature = "onnx", not(all(windows, target_env = "gnu"))))]
+// (Windows with the GNU toolchain has no prebuilt library to link: there only `onnx-dynamic` works.)
+#[cfg(all(feature = "onnx", any(not(all(windows, target_env = "gnu")), feature = "onnx-dynamic")))]
 mod imp {
     use super::{Port, Tensor};
     use ort::session::{Session, SessionInputValue};
@@ -234,7 +235,7 @@ mod imp {
     }
 }
 
-#[cfg(not(all(feature = "onnx", not(all(windows, target_env = "gnu")))))]
+#[cfg(not(all(feature = "onnx", any(not(all(windows, target_env = "gnu")), feature = "onnx-dynamic"))))]
 mod imp {
     use super::{Port, Tensor};
     use std::path::Path;
