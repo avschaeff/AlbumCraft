@@ -457,7 +457,44 @@ impl App {
         if self.store.info_open {
             self.info_panel(ui);
         }
+        let canvas = ui.available_rect_before_wrap();
         self.edit_canvas(ui);
+        self.edit_nav_arrows(ui.ctx(), canvas);
+    }
+
+    /// Big round arrows at the left and right edge of the picture area: the previous and the
+    /// next picture of the list (as ← → do). Not while a tool draws on the picture or two
+    /// pictures are compared, and none where there is no previous / next picture.
+    fn edit_nav_arrows(&mut self, ctx: &egui::Context, canvas: Rect) {
+        if self.edit.tool != Tool::None || self.edit.compare != CompareMode::Single || self.dialog.is_some() {
+            return;
+        }
+        let Some(pos) = self.edit.list.iter().position(|&x| x == self.edit.id) else { return };
+        let size = 44.0;
+        let mut step = 0;
+        for (delta, icon, enabled, x, hint) in [
+            (-1, icons::CHEVRON_LEFT, pos > 0, canvas.left() + 10.0, tr!("edit-previous")),
+            (1, icons::CHEVRON_RIGHT, pos + 1 < self.edit.list.len(), canvas.right() - 10.0 - size, tr!("edit-next")),
+        ] {
+            if !enabled {
+                continue;
+            }
+            egui::Area::new(egui::Id::new(("edit_nav", delta)))
+                .order(egui::Order::Foreground)
+                .fixed_pos(Pos2::new(x, canvas.center().y - size / 2.0))
+                .show(ctx, |ui| {
+                    let (rect, resp) = ui.allocate_exact_size(Vec2::splat(size), Sense::click());
+                    let alpha = if resp.hovered() { 190 } else { 110 };
+                    ui.painter().circle_filled(rect.center(), size / 2.0, Color32::from_black_alpha(alpha));
+                    ui.painter().text(rect.center(), egui::Align2::CENTER_CENTER, icon, egui::FontId::proportional(26.0), Color32::WHITE);
+                    if resp.on_hover_text(hint).on_hover_cursor(egui::CursorIcon::PointingHand).clicked() {
+                        step = delta;
+                    }
+                });
+        }
+        if step != 0 {
+            self.step_photo(step);
+        }
     }
 
     fn edit_keys(&mut self, ctx: &egui::Context) {
