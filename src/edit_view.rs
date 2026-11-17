@@ -134,7 +134,13 @@ fn labelled_slider(ui: &mut egui::Ui, label: &str, v: &mut f32, range: std::ops:
 }
 
 fn tool_button(ui: &mut egui::Ui, icon: &str, label: &str) -> egui::Response {
-    ui.add_sized([112.0, 46.0], egui::Button::new(RichText::new(format!("{icon}\n{label}")).size(12.5)))
+    // two to a row: each takes half of the panel (a long translation must not widen the row)
+    let w = ((ui.available_width() - 6.0) / 2.0).floor().max(112.0);
+    // a label too long for the button gets a smaller size instead of widening it
+    let text_w = ui.fonts_mut(|f| f.layout_no_wrap(label.to_string(), egui::FontId::proportional(12.5), Color32::WHITE).size().x);
+    let room = w - 2.0 * ui.spacing().button_padding.x - 2.0;
+    let size = if text_w > room { (12.5 * room / text_w).max(9.0) } else { 12.5 };
+    ui.add_sized([w, 46.0], egui::Button::new(RichText::new(format!("{icon}\n{label}")).size(size)))
 }
 
 impl App {
@@ -492,7 +498,7 @@ impl App {
             .frame(egui::Frame::new().fill(t().left_bg).inner_margin(egui::Margin::same(8)).stroke(Stroke::new(1.0, t().border)))
             .show(ui, |ui| {
                 crate::theme::panel_gradient(ui, egui::Margin::same(8), t().side_top, t().side_bottom);
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     for (t, label) in [(Tab::Edit, tr!("edit-tab-edit")), (Tab::Presets, tr!("edit-tab-presets")), (Tab::Effects, tr!("edit-tab-effects"))] {
                         if ui.selectable_label(self.edit.tab == t, RichText::new(label).strong()).clicked() {
                             self.edit.tab = t;
